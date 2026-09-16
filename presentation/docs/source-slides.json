@@ -1,0 +1,224 @@
+[
+  {
+    "number": 1,
+    "id": "p6",
+    "text": "De rotas HTTP a eventos:\numa jornada prática\npara pensar EDA\nOPENAPI · ASYNCAPI · AWS · EVENTCATALOG\nEDUARDO PEDÓ GUTKOSKI\nDESTRAVA AI · AWS UG FLORIANÓPOLIS\nAWS COMMUNITY DAY SUL 2026",
+    "notes": ""
+  },
+  {
+    "number": 2,
+    "id": "v5_about",
+    "text": "SOBRE MIM\nSobre mim\n\nEduardo Pedó Gutkoski\n\nSoftware Engineer  ·  Destrava AI\n\nBackend e serverless na AWS\nAWS User Group Leader · Florianópolis\n\nlinkedin.com/in/eduardogutkoski",
+    "notes": ""
+  },
+  {
+    "number": 3,
+    "id": "v5_roadmap",
+    "text": "1\n2\n3\nO problema de documentação\nQuery, Command e Event\nOpenAPI e AsyncAPI\nAGENDA\nO que vamos ver\n4\nAWS, pipeline e EventCatalog\n5\nDocumentação no trabalho com IA",
+    "notes": "Vou começar pelo problema que encontrei no trabalho. Depois, vou usar um exemplo de pedidos para explicar Query, Command e Event, mostrar os contratos em OpenAPI e AsyncAPI e como geramos o EventCatalog com essas informações e o SAM. No final, vou mostrar como essa documentação também entra no nosso trabalho com IA."
+  },
+  {
+    "number": 4,
+    "id": "v2s02",
+    "text": "CONTEXTO / O SISTEMA\nEntrei num projeto EDA\njá em desenvolvimento\nJá havia domínios, funções,\neventos e diagramas.\nSISTEMA\nEDA\nDOMÍNIO\nFUNÇÃO\nEVENTO\nDIAGRAMA",
+    "notes": ""
+  },
+  {
+    "number": 5,
+    "id": "v2s04",
+    "text": "CONTEXTO / A DIFICULDADE\nEu não entendia como\nos domínios se comunicavam\n?\n?\n1  Quem iniciou?\n2  O que foi solicitado?\n3  Quem tomou a decisão?\n4  Qual foi o evento?\n5  Quem precisou reagir?\nDOMÍNIO A\n\nDOMÍNIO B\n\nDOMÍNIO C",
+    "notes": "Apoio à fala\n\nEu tinha diagramas e conseguia identificar os domínios, mas ainda precisava entender como se comunicavam. Essas eram as perguntas que eu tentava responder ao acompanhar uma operação. Os nomes e desenhos deste exemplo são fictícios."
+  },
+  {
+    "number": 6,
+    "id": "slide_5",
+    "text": "1\n2\n3\nENTRADA\n\nO que foi solicitado?\n\nDECISÃO\n\nQuem decidiu?\n\nEFEITOS\n\nQuem precisou reagir?\n\nCONTEXTO / O QUE EU PRECISAVA ENTENDER\nEu precisava acompanhar\numa operação de ponta a ponta",
+    "notes": "Apoio à fala\n\nEu queria acompanhar o caminho completo: o que foi solicitado, qual serviço tomou a decisão e quais serviços precisaram reagir ao resultado."
+  },
+  {
+    "number": 7,
+    "id": "slide_7",
+    "text": "EXEMPLO FICTÍCIO / DOMÍNIOS E AWS\nO sistema de pedidos na AWS\nORDERS\nAmazon EventBridge\nBarramento compartilhado\nINVENTORY\nNOTIFICATIONS\nAPI\nGateway\nLambda\nDynamoDB\nLambda\nLambda\nCLIENTE",
+    "notes": "Apoio à fala\n\nEste é o mapa do sistema fictício que vou usar no restante da palestra. As três áreas delimitam os domínios Orders, Inventory e Notifications. Este desenho não representa a arquitetura interna da Destrava AI.\n\nOrders tem uma entrada HTTP no API Gateway, uma Lambda para sua lógica e uma tabela DynamoDB para os pedidos. Inventory e Notifications têm suas próprias Lambdas. O EventBridge aparece abaixo e fora dos domínios porque é a infraestrutura compartilhada de comunicação por eventos.\n\nAs conexões mostram os componentes que se relacionam. A Lambda de Orders acessa o DynamoDB e publica no EventBridge; o banco não é o produtor desenhado aqui. As Lambdas de Inventory e Notifications recebem mensagens pelas regras de roteamento do EventBridge. As regras não estão detalhadas nesta visão geral.\n\nEste slide apresenta estrutura e responsabilidade. Não é uma sequência numerada de execução, nem uma descrição completa de infraestrutura, segurança ou entrega de mensagens. Mais adiante, o slide da criação do pedido na AWS acompanha uma execução concreta.\n\nAgora que sabemos onde cada parte está, falta entender o que cada interação significa e quais são seus contratos. Vou começar pela parte mais familiar: as rotas HTTP de Orders."
+  },
+  {
+    "number": 8,
+    "id": "p18",
+    "text": "EXEMPLO / ROTAS HTTP\nComecei pelas rotas HTTP\nGET\n/orders/{orderId}\nPOST\n/orders\nPOST\n/orders/{orderId}/cancel\n?\nO que essa operação faz?\nQuem decide?\nQuem precisa reagir?",
+    "notes": "Apoio à fala\n\nComecei olhando os endpoints. Eu conseguia ver o método e a URL, mas também precisava entender qual operação cada rota representava e o que acontecia depois dela."
+  },
+  {
+    "number": 9,
+    "id": "p19",
+    "text": "Que operação cada rota\nrepresenta?\nROTA HTTP\nINTENÇÃO\nGET  /orders/{orderId}\nGetOrderById\nPOST /orders\nCreateOrder\nPOST /orders/{orderId}/cancel\nCancelOrder\nEXEMPLO / OPERAÇÕES",
+    "notes": "Apoio à fala\n\nGET /orders/{orderId} consulta um pedido. POST /orders solicita sua criação. A terceira rota pede o cancelamento. GetOrderById, CreateOrder e CancelOrder são os nomes que escolhemos para essas operações no exemplo."
+  },
+  {
+    "number": 10,
+    "id": "slide_6",
+    "text": "CONCEITOS / TIPOS DE INTERAÇÃO\nQuery, Command e Event\nQ\nQUERY\nO que alguém\nquer saber?\npergunta\nC\nCOMMAND\nO que alguém quer\nque aconteça?\nintenção\nE\nEVENT\nO que aconteceu\ne importa?\nfato",
+    "notes": "Apoio à fala\n\nAs três perguntas me ajudaram a separar as interações: consultar alguma informação, solicitar uma mudança e comunicar algo que já aconteceu. Esses conceitos não dependem de uma ferramenta específica."
+  },
+  {
+    "number": 11,
+    "id": "v2s08",
+    "text": "Query: o que alguém\nquer saber?\nGET\nGetOrderById\n200\nord-42\nresposta\n{\"orderId\":\"ord-42\",\"status\":\"CREATED\"}\nConsultamos o estado do pedido, sem alterá-lo.\nCONCEITOS / QUERY",
+    "notes": "Tempo de referência: 60–70 segundos.\n\nVou começar por uma consulta. A pessoa quer saber como está o pedido ord-42. A rota recebe o identificador, Orders busca essa informação e devolve uma resposta. Neste exemplo, o status retornado é CREATED.\n\nO ponto importante não é o GET ou o código 200 isoladamente. É o propósito da operação: observar o estado do pedido. Antes da consulta ele estava criado; depois dela, continua criado. Consultar não deveria criar outro pedido, cancelar esse pedido nem reservar estoque.\n\nPergunta para a plateia: se eu consultar esse pedido duas vezes, deveria provocar duas mudanças no negócio? Faça uma pausa curta. A resposta é não. Os dados retornados podem mudar se outra operação alterar o pedido entre as consultas, mas a consulta não é a causa dessa mudança.\n\nIsso não exige CQRS, bancos separados ou mensageria. Estamos nomeando a intenção da interação. Agora vamos olhar para uma operação que pede uma mudança.\n\nPrecisão: logs e métricas da consulta não são a mudança de estado de negócio discutida aqui.\nReferência: https://martinfowler.com/bliki/CommandQuerySeparation.html"
+  },
+  {
+    "number": 12,
+    "id": "v2s09",
+    "text": "CONCEITOS / COMMAND\nCommand: o que alguém\nquer que aconteça?\nCLIENTE SOLICITA\nPEDIDO CRIADO\nCreateOrder\nORDERS\nvalida e cria\nord-42\nCREATED\nRegra do exemplo:\no pedido precisa ter pelo menos um item.\nReferência conceitual: David Boyne, EDA Visuals v1.2.0, p. 54.",
+    "notes": "Tempo de referência: 65–75 segundos.\n\nAgora o cliente quer criar um pedido. Ele envia CreateOrder com um item, SKU-1, e quantidade um. Esse nome descreve o que ele quer que aconteça. Receber a solicitação ainda não significa que ela foi concluída.\n\nQuem tem autoridade para decidir é Orders. Vamos estabelecer uma regra simples para este sistema fictício: um pedido precisa ter pelo menos um item. Orders valida os dados e, neste caminho, consegue criar o pedido ord-42, que passa a existir com status CREATED.\n\nAcompanhe o diagrama da esquerda para a direita: solicitação, responsável pela decisão, estado depois da execução. O cliente não determina o sucesso apenas por enviar o comando. Ele pede; Orders verifica se pode executar e realiza a mudança.\n\nAinda não estamos discutindo HTTP, filas ou EventBridge. Um comando descreve a intenção de uma operação, não o transporte escolhido. E ele pode devolver um resultado ao solicitante; não é sinônimo de fire-and-forget.\n\nSe a solicitação chegar sem nenhum item, Orders pode recusá-la. Nesse caso, não há pedido criado nem OrderCreated para publicar. A intenção de criar não garante o sucesso da operação.\n\nTransição: quando a criação é concluída, o que podemos comunicar aos outros serviços?"
+  },
+  {
+    "number": 13,
+    "id": "v2s10",
+    "text": "CONCEITOS / EVENT\nEvent: o que aconteceu\ne importa?\nFATO PUBLICADO\nINVENTORY\nReserva estoque\nORDERS\nOrderCreated\nEVENT\nBUS\nNOTIFICATIONS\nEnvia confirmação\norderId: ord-42\nCada consumidor executa sua parte.\nReferência conceitual: David Boyne, EDA Visuals v1.2.0, p. 54.",
+    "notes": "Tempo de referência: 60–70 segundos.\n\nNo caminho de sucesso, Orders criou o pedido ord-42. Agora ele pode comunicar OrderCreated. O nome está no passado porque representa um fato ocorrido no domínio, não uma solicitação para que alguém crie o pedido.\n\nO identificador no exemplo mostra de qual pedido estamos falando. É apenas um recorte do payload; mais adiante veremos como documentar os campos e o contrato da mensagem.\n\nO evento passa pelo barramento e chega aos interessados. Inventory executa sua parte relacionada ao estoque. Notifications executa sua parte de comunicação. O produtor publica o fato sem precisar chamar diretamente cada consumidor. As inscrições e regras de roteamento é que determinam quem o recebe.\n\nRepare no limite da informação: OrderCreated diz que o pedido foi criado. Ele não diz que a reserva de estoque terminou nem que a confirmação foi enviada. Cada consumidor ainda tem trabalho a fazer.\n\nTransição: o cliente também recebe uma resposta da API. Essa resposta é a mesma coisa que esse evento?\n\nReferências: David Boyne, EDA Visuals v1.2.0, p. 54; https://martinfowler.com/articles/201701-event-driven.html"
+  },
+  {
+    "number": 14,
+    "id": "v7_http_response_event",
+    "text": "201 Created e OrderCreated\nchegam a destinos diferentes\nEXEMPLO / RESPOSTA E EVENTO\nRESPOSTA HTTP\nEVENTO\n201 Created\norderId: ord-42\nORDERS\nOrderCreated\norderId: ord-42\nCLIENTE\nCONSUMIDORES\nReferência conceitual: David Boyne, EDA Visuals v1.2.0, p. 54.",
+    "notes": "Tempo de referência: 55–65 segundos.\n\nNeste exemplo, a criação concluída tem duas comunicações com finalidades diferentes. À esquerda, o cliente que fez a requisição HTTP recebe 201 Created e o identificador do pedido. É a resposta daquela interação com a API.\n\nÀ direita, Orders publica OrderCreated para que outros serviços saibam do fato e possam reagir. O identificador pode aparecer nas duas mensagens, mas isso não as torna a mesma interface: os destinatários e os contratos são diferentes.\n\nApontar primeiro para CLIENTE e depois para CONSUMIDORES ajuda a separar os dois papéis. Uma resposta HTTP de sucesso não significa que todos os consumidores do evento já terminaram. Da mesma forma, escolher HTTP para receber o comando não impede o sistema de publicar eventos depois da criação.\n\nEssa separação vai aparecer na documentação: o contrato HTTP tem sua operação e sua resposta; a comunicação por mensagens tem seu contrato de evento.\n\nTransição: nesse exemplo, o comando chegou por HTTP e o evento foi publicado no barramento. Vamos separar o significado da interação do transporte escolhido.\n\nPrecisão: este desenho não estabelece a ordem da resposta e da publicação nem promete atomicidade entre gravação no banco e envio ao barramento. A implementação precisa tratar falhas nesse intervalo. Não explicar essa entrega como exatamente uma vez.\n\nReferência HTTP: https://www.rfc-editor.org/rfc/rfc9110.html#name-201-created"
+  },
+  {
+    "number": 15,
+    "id": "v2s12",
+    "text": "Semântica não é\ntransporte\nSIGNIFICADO\nQUERY\nCOMMAND\nEVENT\nTRANSPORTE\nHTTP\nEVENTBRIDGE\nSQS\nCONCEITOS / SIGNIFICADO E TRANSPORTE",
+    "notes": "Apoio à fala\n\nQuery, Command e Event descrevem o significado da interação. HTTP, EventBridge e SQS são maneiras de transportar requisições e mensagens. Um comando pode chegar por HTTP ou por uma fila; essa escolha não transforma a intenção em um fato ocorrido."
+  },
+  {
+    "number": 16,
+    "id": "v4s14",
+    "text": "CONTRATOS / O QUE DOCUMENTAR\nEu precisava documentar\no que cada serviço recebe e envia\nDIAGRAMA\nserviços e\nconexões\nDÚVIDAS\no que enviar\ne receber?\nCONTRATO\ncampos\ne tipos",
+    "notes": "Apoio à fala\n\nO diagrama mostrava os serviços e suas conexões. Para implementar ou consumir uma integração, eu também precisava saber os campos, os tipos, os parâmetros e as respostas. Passei a registrar esses detalhes nos contratos usando especificações que as ferramentas conseguem interpretar."
+  },
+  {
+    "number": 17,
+    "id": "spec_openapi_intro",
+    "text": "CONTRATOS / OPENAPI\nOpenAPI: especificação\npara APIs HTTP\nORIGEM\nSwagger · Tony Tam · 2010\nOpenAPI Initiative (Linux Foundation) · 2015\nDESCREVE\nOperações HTTP, parâmetros,\nrequisições e respostas\nFORMATO\nYAML ou JSON\nLegível por pessoas e ferramentas",
+    "notes": "Tempo sugerido: 45–60 segundos.\n\nPara documentar as interfaces HTTP, usei OpenAPI. Ele define uma estrutura comum para descrever as operações, os parâmetros e as respostas de uma API.\n\nOpenAPI é uma especificação para descrever interfaces HTTP, não uma tela de documentação. O mesmo documento pode alimentar validadores, documentação e outras ferramentas. YAML é uma forma de escrever o documento; JSON também é permitido.\n\nOrigem: Swagger foi criado por Tony Tam em 2010 e publicado como open source em 2011. Em 2015 foi anunciada a OpenAPI Initiative e a doação da especificação Swagger. O nome OpenAPI Specification foi adotado na transição para 2016. Swagger também identifica ferramentas do ecossistema, não apenas o formato antigo.\n\nTransição: agora vamos ler um recorte do contrato de Orders.\n\nFontes:\nhttps://www.linuxfoundation.org/press/press-release/new-collaborative-project-to-extend-swagger-specification-for-building-connected-applications-and-services\nhttps://www.openapis.org/blog/2016/01/09/next-steps-for-the-oai-an-exciting-2016-looms-ahead\nhttps://learn.openapis.org/introduction.html\nhttps://swagger.io/about/"
+  },
+  {
+    "number": 18,
+    "id": "v2s13",
+    "text": "CONTRATOS / OPENAPI\nAs rotas de Orders\nno OpenAPI\npaths:\n  /orders/{orderId}:\n    get:\n      operationId: GetOrderById\n      x-kind: query\n  /orders:\n    post:\n      operationId: CreateOrder\n      x-kind: command\nOPENAPI 3.1 · RECORTE\npaths + método\nRotas e operações HTTP\noperationId\nIdentificador único\nda operação\nx-kind\nExtensão própria,\nnão oficial",
+    "notes": "Leitura do recorte OpenAPI 3.1\n\npaths agrupa os caminhos; get e post descrevem as operações HTTP. operationId identifica uma operação de forma única dentro do documento. GetOrderById e CreateOrder são escolhas de linguagem do domínio.\n\nx-kind é uma extensão explícita do projeto, não uma classificação oficial. OpenAPI não classifica automaticamente Query ou Command. O prefixo x- é o mecanismo de extensão previsto pela especificação.\n\nEste é um recorte didático, não um documento completo. O contrato completo também contém openapi, info, parâmetros, respostas e schemas. A versão do padrão em openapi não é a versão de negócio em info.version.\n\nFonte: https://spec.openapis.org/oas/v3.1.0.html"
+  },
+  {
+    "number": 19,
+    "id": "spec_asyncapi_intro",
+    "text": "CONTRATOS / ASYNCAPI\nAsyncAPI: especificação\npara APIs com mensagens\nORIGEM\nFran Méndez · Hitch · 2016\nInspirado no OpenAPI\nDESCREVE\nMensagens, canais e operações\nde envio e recebimento\nFORMATO\nYAML ou JSON\nIndependente de protocolo",
+    "notes": "Tempo sugerido: 45–60 segundos.\n\nDepois de registrar as interfaces HTTP, ainda precisávamos descrever a comunicação por mensagens.\n\nFran Méndez criou o AsyncAPI em 2016, quando trabalhava na Hitch. A empresa precisava de um formato processável por ferramentas para documentar sua arquitetura de microsserviços baseada em mensagens. A inspiração foi o OpenAPI. Essa necessidade conecta com a história da palestra, mas não foi a origem da classificação Query, Command e Event.\n\nAsyncAPI descreve interfaces baseadas em mensagens: canais, mensagens e operações de uma aplicação. Não é um broker e não se limita a eventos de domínio. A especificação é independente de protocolo; os detalhes de protocolos podem ser registrados em bindings. Aqui usamos AsyncAPI 3.0.\n\nTransição: no YAML, vamos separar onde as mensagens circulam, o que elas carregam e o que a aplicação faz.\n\nFontes:\nhttps://www.asyncapi.com/about\nhttps://www.linuxfoundation.org/press/press-release/linux-foundation-will-host-asyncapi-to-support-growth-and-collaboration-for-industrys-fastest-growing-api-spec\nhttps://www.asyncapi.com/docs/reference/specification/v3.0.0"
+  },
+  {
+    "number": 20,
+    "id": "v2s14",
+    "text": "O envio de OrderCreated\nno AsyncAPI\nchannels:\n  orderEvents:\n    address: app-events\n    messages:\n      OrderCreated:\n        name: order.created.v1\n        x-kind: event\noperations:\n  sendOrderCreated:\n    action: send\n    channel:\n      $ref: '#/channels/orderEvents'\nCONTRATOS / ASYNCAPI\nASYNCAPI 3.0 · RECORTE\nchannels\nOnde as mensagens\ncirculam\nmessages\nNome, headers\ne payload\noperations\nO que a aplicação faz:\nsend ou receive",
+    "notes": "Apoio à fala\n\nNo consumidor, action: receive registra a direção oposta sem alterar o significado do Event.\n\n\nLeitura do recorte AsyncAPI 3.0\n\nchannels descreve os canais e as mensagens disponíveis neles. address informa o endereço; messages descreve cada mensagem, podendo incluir headers e payload. operations descreve ações da aplicação. action: send significa que esta aplicação envia; receive significa que recebe. Não é uma classificação de Command ou Event.\n\nO $ref liga a operação ao canal. x-kind continua sendo nossa extensão, e order.created.v1 é nossa convenção de nome.\n\nO slide mostra um recorte, sem todos os metadados ou schemas. No documento completo, asyncapi informa a versão da especificação e info.version a versão da API.\n\nFonte: https://www.asyncapi.com/docs/reference/specification/v3.0.0"
+  },
+  {
+    "number": 21,
+    "id": "v4s17",
+    "text": "CONTRATOS / O EXEMPLO COMPLETO\nCreateOrder e OrderCreated\nnos contratos\nOPENAPI\nPOST /orders\noperationId: CreateOrder\nkind: command\nASYNCAPI\norderEvents\nname: order.created.v1\nkind: event\nresultado possível\napós execução",
+    "notes": "Apoio à fala\n\nCreateOrder expressa intenção. OrderCreated registra um fato que realmente ocorreu."
+  },
+  {
+    "number": 22,
+    "id": "v2s15",
+    "text": "CONTRATOS / CONVENÇÕES\nConvenções de nomes,\nversões e identificadores\nCONVENÇÃO\nEXEMPLO\nCommand: imperativo\nCreateOrder\nEvent: fato passado\nOrderCreated\nMensagem versionada\norder.created.v1\nID do contrato\noperationId / message.name\nCorrelação do fluxo\ncorrelationId",
+    "notes": "Apoio à fala\n\nNo exemplo, usamos verbos no imperativo para comandos e nomes no passado para eventos. Também definimos uma convenção de versão e identificadores estáveis. Podemos configurar a pipeline para verificar nomes, campos e referências. A equipe precisa revisar se o contrato representa corretamente a operação. x-kind é uma extensão nossa; query e command não são classificações oficiais do OpenAPI.\n\ncorrelationId: podemos propagar um identificador para relacionar CreateOrder, OrderCreated e o processamento em Inventory e Notifications nos logs. Interações diferentes do mesmo fluxo podem compartilhar esse valor. Ele não é um identificador único de mensagem nem deve ser usado, sozinho, como chave de deduplicação.\n\noperationId e message.name identificam operações e tipos de mensagem no contrato; correlationId acompanha uma execução do fluxo. O nome e a localização desse campo são convenções do projeto. O AsyncAPI possui um Correlation ID Object para declarar onde encontrar o valor na mensagem, que é diferente do valor gerado em tempo de execução.\n\nReferências de apoio:\nhttps://www.asyncapi.com/docs/reference/specification/v3.0.0"
+  },
+  {
+    "number": 23,
+    "id": "v4s19",
+    "text": "CONTRATOS / PRODUTORES E CONSUMIDORES\nQuem publica?\nQuem consome?\nORDERS\naction: send\nCHANNEL\norderEvents\norder.created.v1\nINVENTORY\naction: receive\nNOTIFICATIONS\naction: receive",
+    "notes": "Apoio à fala\n\nsend e receive descrevem a direção relativa a cada aplicação."
+  },
+  {
+    "number": 24,
+    "id": "slide_4",
+    "text": "O Event Bridge encaminha o evento aos consumidores.\nCLIENTE\nRULES\nAPI Gateway\nOrders Lambda\nDynamoDB\nEventBridge\nINVENTORY\nNOTIFICATIONS\npersist\nsource: com.example.orders\ndetail-type: order.created.v1\nAWS / CRIAÇÃO DO PEDIDO\nA criação do pedido na AWS",
+    "notes": "Apoio à fala\n\nA Lambda persiste o estado e publica o fato; o banco não está no caminho do event bus."
+  },
+  {
+    "number": 25,
+    "id": "v4s21",
+    "text": "AWS / INFRAESTRUTURA COMO CÓDIGO\nTambém precisamos documentar\na infraestrutura\nOPENAPI\noperações HTTP\nQuery / Command\nASYNCAPI\nmensagens e canais\nsend / receive\nAWS SAM\nrecursos e topologia\nLambda / bus / filas\nVISÃO ARQUITETURAL",
+    "notes": "Apoio à fala\n\nOpenAPI e AsyncAPI descrevem as interfaces e as mensagens. Para acrescentar bancos, funções, filas e suas referências à documentação, usamos as informações declaradas no SAM. O gerador aproveita esses arquivos junto com os contratos."
+  },
+  {
+    "number": 26,
+    "id": "v2s16",
+    "text": "Como apliquei isso\nno trabalho\nCONTRATOS POR DOMÍNIO E GERAÇÃO NA PIPELINE",
+    "notes": "Apoio à fala\n\nNo trabalho, organizei a documentação por domínio. Os arquivos OpenAPI e AsyncAPI descrevem as interfaces, e o IaC acrescenta os recursos de infraestrutura. A partir desses arquivos, montamos o processo que gera o catálogo na pipeline."
+  },
+  {
+    "number": 27,
+    "id": "eventcatalog_boyne_intro",
+    "text": "EVENTCATALOG / O PROJETO\nEncontrei o EventCatalog\nDavid Boyne\nCriador do EventCatalog\nAutor do EDA Visuals\nDocumentação de serviços,\ncontratos e dependências.\nFoto: boyney.io",
+    "notes": "Tempo sugerido: 40–60 segundos.\n\nNessa busca, encontrei os conteúdos do David Boyne, autor do EDA Visuals e criador do EventCatalog.\n\nO problema que o projeto buscava resolver tinha muita relação com o meu: conforme o sistema cresce, conhecer os componentes não significa compreender como eles se relacionam.\n\nO que me chamou a atenção foi poder abrir a página de um serviço, consultar seus contratos e ver quem publica e quem consome cada mensagem.\n\nEntão pensei: se já temos contratos e infraestrutura descritos em arquivos, podemos usar essas informações para alimentar esse catálogo. Foi a partir daí que construímos nosso fluxo de geração.\n\nContexto opcional: segundo o autor, EventCatalog começou em janeiro de 2022 como projeto paralelo. Não atribuir a Boyne a criação de OpenAPI, AsyncAPI ou dos conceitos Query, Command e Event.\n\nFontes:\nhttps://www.boyney.io/about\nhttps://v1.eventcatalog.dev/\nhttps://www.eventcatalog.dev/\nhttps://diary.boyney.io/bootstrap-visuals-v0.0.1.pdf (página 5)\nFoto: https://www.boyney.io/static/images/avatar.jpg"
+  },
+  {
+    "number": 28,
+    "id": "v2s19",
+    "text": "EVENTCATALOG / PIPELINE\nComo geramos o EventCatalog\nna pipeline\n1  FONTES POR DOMÍNIO\n2  GERADOR NA PIPELINE\n3  CATÁLOGO GERADO\nORDERS\nOAS\nAAS\nSAM\nINVENTORY\nOAS\nAAS\nSAM\nNOTIFICATIONS\nOAS\nAAS\nSAM\nBUILD / CI\n1  VALIDAR\n2  INTERPRETAR\n3  RELACIONAR\n4  GERAR\nEVENTCATALOG\ndomínios\nserviços\neventos\nchannels · schemas\nReferência conceitual: David Boyne, EDA Visuals v1.2.0, p. 117.",
+    "notes": "Apoio à fala\n\nCada domínio mantém seus arquivos de contrato e infraestrutura. A pipeline executa o gerador, que valida os arquivos, identifica os recursos e relaciona os serviços e mensagens. Os arquivos de origem continuam sendo editados no projeto; o EventCatalog apresenta a documentação gerada."
+  },
+  {
+    "number": 29,
+    "id": "v4s24",
+    "text": "EVENTCATALOG / ARQUIVOS DE ENTRADA\nO que extraímos\nde cada arquivo\nOPENAPI\nrota · operação · entrada · resposta · Query / Command\nASYNCAPI\nmensagem · schema · channel · send / receive · Event\nAWS SAM\nLambda · EventBridge · SQS · DynamoDB · referências",
+    "notes": "Apoio à fala\n\nO gerador lê operações, parâmetros e respostas no OpenAPI; mensagens, canais e direção das operações no AsyncAPI; e os recursos declarados no SAM. Cada arquivo fornece informações diferentes para o catálogo."
+  },
+  {
+    "number": 30,
+    "id": "v4s25",
+    "text": "EVENTCATALOG / GERADOR\nO que o gerador faz\n1\nVALIDAR\n2\nINTERPRETAR\n3\nRELACIONAR\n4\nGERAR\nERROS NA VALIDAÇÃO\nID DUPLICADO\nREFERÊNCIA NÃO RESOLVIDA\nRESPONSÁVEL AUSENTE",
+    "notes": "Apoio à fala\n\nO gerador é um script executado na pipeline de CI. Ele verifica os arquivos, lê os recursos, resolve as referências e escreve os arquivos usados pelo EventCatalog. Identificadores duplicados, referências inválidas e responsáveis ausentes são exemplos de problemas que a validação pode apontar."
+  },
+  {
+    "number": 31,
+    "id": "v4s26",
+    "text": "EVENTCATALOG / MAPEAMENTO\nComo mapeamos os arquivos\npara o EventCatalog\nOpenAPI operationId\noperação do serviço\nAsyncAPI message\nevento + schema\nAsyncAPI channel\nchannel\nsend / receive\nrelação producer / consumer\nSAM resource\nrecurso AWS relacionado",
+    "notes": "Apoio à fala\n\nRelações só são geradas a partir de identificadores explícitos."
+  },
+  {
+    "number": 32,
+    "id": "v4s27",
+    "text": "EVENTCATALOG / ORDERCREATED\nQuem publica e quem consome\nOrderCreated",
+    "notes": "Apoio à fala\n\nOrders Service → OrderCreated → Application Events → consumidores."
+  },
+  {
+    "number": 33,
+    "id": "v6s30_catalog_flow",
+    "text": "EVENTCATALOG / FLUXO\nA criação de um pedido\nno EventCatalog",
+    "notes": "Apoio à fala\n\nCreateOrder → decisão → OrderCreated → Inventory / Notifications."
+  },
+  {
+    "number": 34,
+    "id": "ai_architecture_context",
+    "text": "DESENVOLVIMENTO COM IA\nComo a documentação ajuda\nno desenvolvimento com IA\nO AGENTE CONSULTA\nContratos\ne relações\nO AGENTE PROPÕE\nCódigo +\ncontratos\nVALIDAÇÃO\nCI valida\nEquipe revisa",
+    "notes": "Tempo sugerido: 60–90 segundos.\n\nE esse trabalho ganhou outra utilidade com a programação agêntica: a documentação que ajuda a equipe também pode dar contexto aos agentes.\n\nOpenAPI, AsyncAPI e SAM registram interfaces e recursos. As relações do catálogo e nossas convenções ajudam a explicar como essas peças se conectam.\n\nNo nosso trabalho, colocamos no harness, o conjunto de instruções e ferramentas que orienta o agente, a regra de manter OpenAPI e AsyncAPI atualizados junto com o código.\n\nPensem no nosso exemplo fictício: vamos alterar OrderCreated. Podemos orientar o agente a consultar o contrato e seus consumidores, propor a mudança e atualizar a documentação correspondente. A pipeline verifica as regras que configuramos; a equipe revisa a decisão e os efeitos no sistema. O Git registra a mudança e o catálogo pode ser regenerado.\n\nCom esses arquivos, podemos orientar o agente a consultar os contratos e as dependências antes de propor uma alteração. Ainda precisamos manter as fontes atualizadas, executar os testes e revisar o código gerado.\n\nTransição: essa mesma base ajuda tanto os agentes quanto as pessoas a compreender o sistema, o que nos leva ao resultado para a equipe.\n\nBase do relato: experiência informada por Eduardo com contratos por domínio, geração em pipeline e disciplina de documentação no harness. O fluxo com OrderCreated é um exemplo didático, sem métricas de produtividade ou precisão.\n\nReferência técnica: o EventCatalog permite conectar domínios, serviços, APIs, eventos e responsáveis; manter a documentação junto do código e oferecer contexto de arquitetura a ferramentas de IA. A descrição do processo deste slide é nossa aplicação desse princípio, não uma funcionalidade automática do catálogo.\nhttps://www.eventcatalog.dev/\n\nMCP pode ser citado como possibilidade do produto, mas não foi necessário para este slide e não está sendo apresentado como implementação existente no projeto."
+  },
+  {
+    "number": 35,
+    "id": "v2s20",
+    "text": "A equipe passou a entender\nmelhor o sistema\nRESULTADO / NO DIA A DIA\nANTES\nDIAGRAMA\nOPENAPI\nASYNCAPI\nSAM\n?\n?\n?\njuntar informações\nde arquivos e diagramas\n→\nAGORA\nDOMÍNIO\nOPERAÇÃO\nEVENTO\nCONSUMIDORES\nOrders\nCreateOrder\nOrderCreated\nInventory\nNotifications\nconsultar contratos e dependências\n+ consumidor: Notifications\nReferência conceitual: David Boyne, EDA Visuals v1.2.0, p. 119.",
+    "notes": "Apoio à fala\n\nDepois dessa organização, a equipe passou a entender melhor o sistema. Conseguimos consultar os contratos e seguir as relações entre os serviços. No exemplo, a página de OrderCreated mostra o produtor e os consumidores documentados. Esse é um resultado qualitativo da nossa experiência; não medimos uma porcentagem de ganho de produtividade."
+  },
+  {
+    "number": 36,
+    "id": "v2s21",
+    "text": "PARA APLICAR NO SEU PROJETO\nPor onde começar\nno seu sistema\n1\nSABER\nO que alguém quer saber?\n2\nMUDAR\nO que alguém quer que aconteça?\n3\nFATO\nQue fato ocorreu?\n4\nDONO\nQuem é responsável?\n5\nREAÇÃO\nQuem precisa saber?\nEscolha um fluxo e documente essas cinco respostas.",
+    "notes": "Apoio à fala\n\nPara começar no seu projeto, escolha um fluxo pequeno. Identifique as consultas, os comandos, os eventos, os responsáveis e os consumidores. Registre os contratos desse fluxo e use o catálogo para conferir se as relações estão claras."
+  },
+  {
+    "number": 37,
+    "id": "v2s22",
+    "text": "Comece por um fluxo\ndo seu sistema\nNEM TUDO PRECISA VIRAR EVENTO\nEDUARDO PEDÓ GUTKOSKI\nlinkedin.com/in/eduardogutkoski\nQR DO\nGITHUB",
+    "notes": "Pendência visual\n\ninserir após publicar"
+  }
+]

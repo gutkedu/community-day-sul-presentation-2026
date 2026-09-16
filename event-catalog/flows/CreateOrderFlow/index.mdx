@@ -1,0 +1,50 @@
+---
+id: CreateOrderFlow
+name: Create Order Flow
+version: 1.0.0
+summary: Do aceite do comando à reação dos consumidores de OrderCreated.
+owners:
+  - orders-team
+steps:
+  - id: command
+    title: Create order
+    message:
+      id: CreateOrder
+      version: 1.0.0
+    next_step: accepted
+  - id: accepted
+    title: Pedido aceito?
+    custom:
+      title: Pedido aceito?
+      type: Decision
+      color: orange
+      summary: A relação causal vem de x-architecture-outcomes.
+    next_step:
+      id: event
+      label: sim
+  - id: event
+    title: Order created
+    message:
+      id: OrderCreated
+      version: 1.0.0
+    next_steps:
+      - id: inventory
+        label: reservar estoque
+      - id: notifications
+        label: preparar notificação
+  - id: inventory
+    title: Inventory Service
+    service:
+      id: inventory-service
+      version: 1.0.0
+  - id: notifications
+    title: Notifications Service
+    service:
+      id: notifications-service
+      version: 1.0.0
+---
+<!-- Generated from architecture/. Do not edit manually. -->
+
+## Origem
+
+Fluxo derivado do outcome explícito de `CreateOrder` e das operações AsyncAPI que recebem `OrderCreated`.

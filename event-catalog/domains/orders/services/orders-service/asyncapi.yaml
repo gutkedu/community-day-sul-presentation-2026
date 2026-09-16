@@ -1,0 +1,98 @@
+asyncapi: 3.0.0
+info:
+  title: Orders Service Events
+  version: 1.0.0
+  description: Contrato canônico dos eventos publicados por Orders.
+defaultContentType: application/json
+channels:
+  applicationEvents:
+    address: application-events
+    title: Application Events
+    description: EventBridge bus compartilhado entre os domínios.
+    x-architecture-resource:
+      logicalId: ApplicationEventBus
+    messages:
+      OrderCreated:
+        $ref: '#/components/messages/OrderCreated'
+operations:
+  publishOrderCreated:
+    action: send
+    summary: Publica o evento depois que CreateOrder aceita o pedido.
+    channel:
+      $ref: '#/channels/applicationEvents'
+    messages:
+      - $ref: '#/channels/applicationEvents/messages/OrderCreated'
+    x-architecture-resource:
+      logicalId: CreateOrderFunction
+components:
+  messages:
+    OrderCreated:
+      name: OrderCreated
+      title: Order Created
+      summary: Fato emitido quando um pedido foi aceito.
+      x-kind: event
+      x-wire-name: order.created.v1
+      payload:
+        $ref: '#/components/schemas/OrderCreatedPayload'
+      examples:
+        - name: Pedido aceito
+          summary: Exemplo completo do detail entregue pelo EventBridge.
+          payload:
+            metadata:
+              eventId: f71e0b10-84a4-4e79-abf7-32ee36f6b57c
+              eventVersion: 1.0.0
+              occurredAt: '2026-09-02T14:00:00Z'
+              correlationId: 339b7862-fcba-4fe2-b18d-a162658bd001
+            data:
+              orderId: 6c47d4e8-0e2b-4a46-899e-2f3da4c155a9
+              customerId: 08c625ee-7747-4cf0-97c2-d79549150f45
+              items:
+                - sku: COMMUNITY-DAY-TICKET
+                  quantity: 1
+  schemas:
+    OrderCreatedPayload:
+      type: object
+      additionalProperties: false
+      required: [metadata, data]
+      properties:
+        metadata:
+          type: object
+          additionalProperties: false
+          required: [eventId, eventVersion, occurredAt]
+          properties:
+            eventId:
+              type: string
+              format: uuid
+            eventVersion:
+              type: string
+              const: 1.0.0
+            occurredAt:
+              type: string
+              format: date-time
+            correlationId:
+              type: string
+              format: uuid
+        data:
+          type: object
+          additionalProperties: false
+          required: [orderId, customerId, items]
+          properties:
+            orderId:
+              type: string
+              format: uuid
+            customerId:
+              type: string
+              format: uuid
+            items:
+              type: array
+              minItems: 1
+              items:
+                type: object
+                additionalProperties: false
+                required: [sku, quantity]
+                properties:
+                  sku:
+                    type: string
+                  quantity:
+                    type: integer
+                    minimum: 1

@@ -1,0 +1,119 @@
+openapi: 3.1.0
+info:
+  title: Orders Service API
+  version: 1.0.0
+  description: Contrato HTTP para criação e consulta de pedidos.
+paths:
+  /orders/{orderId}:
+    get:
+      operationId: GetOrderById
+      summary: Consulta um pedido por identificador.
+      x-kind: query
+      x-architecture-resource:
+        logicalId: GetOrderByIdFunction
+      parameters:
+        - name: orderId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          example: 6c47d4e8-0e2b-4a46-899e-2f3da4c155a9
+      responses:
+        '200':
+          description: Pedido encontrado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Order'
+              example:
+                orderId: 6c47d4e8-0e2b-4a46-899e-2f3da4c155a9
+                status: accepted
+                items:
+                  - sku: COMMUNITY-DAY-TICKET
+                    quantity: 1
+        '404':
+          description: Pedido não encontrado.
+  /orders:
+    post:
+      operationId: CreateOrder
+      summary: Cria um novo pedido.
+      x-kind: command
+      x-architecture-outcomes:
+        - OrderCreated
+      x-architecture-resource:
+        logicalId: CreateOrderFunction
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateOrderRequest'
+            example:
+              customerId: 08c625ee-7747-4cf0-97c2-d79549150f45
+              items:
+                - sku: COMMUNITY-DAY-TICKET
+                  quantity: 1
+      responses:
+        '202':
+          description: Pedido aceito para processamento.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderAccepted'
+              example:
+                orderId: 6c47d4e8-0e2b-4a46-899e-2f3da4c155a9
+                status: accepted
+        '400':
+          description: Requisição inválida.
+components:
+  schemas:
+    OrderItem:
+      type: object
+      additionalProperties: false
+      required: [sku, quantity]
+      properties:
+        sku:
+          type: string
+        quantity:
+          type: integer
+          minimum: 1
+    CreateOrderRequest:
+      type: object
+      additionalProperties: false
+      required: [customerId, items]
+      properties:
+        customerId:
+          type: string
+          format: uuid
+        items:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/OrderItem'
+    OrderAccepted:
+      type: object
+      additionalProperties: false
+      required: [orderId, status]
+      properties:
+        orderId:
+          type: string
+          format: uuid
+        status:
+          type: string
+          const: accepted
+    Order:
+      type: object
+      additionalProperties: false
+      required: [orderId, status, items]
+      properties:
+        orderId:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [accepted, reserved, notified]
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/OrderItem'

@@ -1,0 +1,20 @@
+---
+id: GetInventoryBySku
+name: Get Inventory By Sku
+version: 1.0.0
+summary: Consulta a disponibilidade de um SKU.
+owners:
+  - inventory-team
+operation:
+  method: GET
+  path: '/inventory/{sku}'
+  statusCodes:
+    - '200'
+    - '404'
+schemaPath: schema.json
+---
+<!-- Generated from architecture/. Do not edit manually. -->
+
+## Semântica
+
+Query HTTP implementada conceitualmente por `GetInventoryBySkuFunction`.

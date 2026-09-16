@@ -1,0 +1,73 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Recursos documentais do domínio Inventory; não destinados a deploy nesta demonstração.
+Parameters:
+  ApplicationEventBusArn:
+    Type: String
+Resources:
+  InventoryApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: demo
+  GetInventoryBySkuFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      DocumentationOnly: true
+    Properties:
+      Runtime: nodejs22.x
+      Handler: not-implemented.handler
+      CodeUri: not-implemented/
+      Events:
+        GetInventoryBySku:
+          Type: Api
+          Properties:
+            RestApiId:
+              Ref: InventoryApi
+            Path: /inventory/{sku}
+            Method: get
+  OrderCreatedConsumerFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      DocumentationOnly: true
+    Properties:
+      Runtime: nodejs22.x
+      Handler: not-implemented.handler
+      CodeUri: not-implemented/
+  OrderCreatedRule:
+    Type: AWS::Events::Rule
+    Properties:
+      EventBusName:
+        Ref: ApplicationEventBusArn
+      EventPattern:
+        source:
+          - com.communityday.orders
+        detail-type:
+          - order.created.v1
+      Targets:
+        - Arn:
+            Fn::GetAtt: [OrderCreatedConsumerFunction, Arn]
+          Id: InventoryOrderCreatedConsumer
+      State: ENABLED
+  InventoryTable:
+    Type: AWS::DynamoDB::Table
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: sku
+          AttributeType: S
+      KeySchema:
+        - AttributeName: sku
+          KeyType: HASH
+      SSESpecification:
+        SSEEnabled: true
+  AllowEventBridgeInvoke:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName:
+        Ref: OrderCreatedConsumerFunction
+      Principal: events.amazonaws.com
+      SourceArn:
+        Fn::GetAtt: [OrderCreatedRule, Arn]

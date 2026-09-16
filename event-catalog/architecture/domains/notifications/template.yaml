@@ -1,0 +1,59 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Recursos documentais do domínio Notifications; não destinados a deploy nesta demonstração.
+Parameters:
+  ApplicationEventBusArn:
+    Type: String
+Resources:
+  NotificationsApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: demo
+  GetNotificationsByOrderIdFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      DocumentationOnly: true
+    Properties:
+      Runtime: nodejs22.x
+      Handler: not-implemented.handler
+      CodeUri: not-implemented/
+      Events:
+        GetNotificationsByOrderId:
+          Type: Api
+          Properties:
+            RestApiId:
+              Ref: NotificationsApi
+            Path: /notifications/orders/{orderId}
+            Method: get
+  OrderCreatedConsumerFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      DocumentationOnly: true
+    Properties:
+      Runtime: nodejs22.x
+      Handler: not-implemented.handler
+      CodeUri: not-implemented/
+  OrderCreatedRule:
+    Type: AWS::Events::Rule
+    Properties:
+      EventBusName:
+        Ref: ApplicationEventBusArn
+      EventPattern:
+        source:
+          - com.communityday.orders
+        detail-type:
+          - order.created.v1
+      Targets:
+        - Arn:
+            Fn::GetAtt: [OrderCreatedConsumerFunction, Arn]
+          Id: NotificationsOrderCreatedConsumer
+      State: ENABLED
+  AllowEventBridgeInvoke:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName:
+        Ref: OrderCreatedConsumerFunction
+      Principal: events.amazonaws.com
+      SourceArn:
+        Fn::GetAtt: [OrderCreatedRule, Arn]

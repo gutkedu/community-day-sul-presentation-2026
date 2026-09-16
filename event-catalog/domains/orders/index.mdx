@@ -1,0 +1,23 @@
+---
+id: orders
+name: Orders
+version: 1.0.0
+summary: Captura e mantém pedidos.
+owners:
+  - orders-team
+services:
+  - id: orders-service
+    version: 1.0.0
+sends:
+  - id: OrderCreated
+    version: 1.0.0
+receives: []
+flows:
+  - id: CreateOrderFlow
+    version: 1.0.0
+---
+<!-- Generated from architecture/. Do not edit manually. -->
+
+## Limite de negócio
+
+Captura e mantém pedidos.

@@ -1,0 +1,44 @@
+openapi: 3.1.0
+info:
+  title: Inventory Service API
+  version: 1.0.0
+  description: Contrato HTTP de leitura de disponibilidade.
+paths:
+  /inventory/{sku}:
+    get:
+      operationId: GetInventoryBySku
+      summary: Consulta a disponibilidade de um SKU.
+      x-kind: query
+      x-architecture-resource:
+        logicalId: GetInventoryBySkuFunction
+      parameters:
+        - name: sku
+          in: path
+          required: true
+          schema:
+            type: string
+          example: COMMUNITY-DAY-TICKET
+      responses:
+        '200':
+          description: Disponibilidade encontrada.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InventoryItem'
+              example:
+                sku: COMMUNITY-DAY-TICKET
+                available: 250
+        '404':
+          description: SKU não encontrado.
+components:
+  schemas:
+    InventoryItem:
+      type: object
+      additionalProperties: false
+      required: [sku, available]
+      properties:
+        sku:
+          type: string
+        available:
+          type: integer
+          minimum: 0

@@ -1,0 +1,20 @@
+---
+id: CreateOrder
+name: Create Order
+version: 1.0.0
+summary: Cria um novo pedido.
+owners:
+  - orders-team
+operation:
+  method: POST
+  path: /orders
+  statusCodes:
+    - '202'
+    - '400'
+schemaPath: schema.json
+---
+<!-- Generated from architecture/. Do not edit manually. -->
+
+## Semântica
+
+Command HTTP implementada conceitualmente por `CreateOrderFunction`.

@@ -1,0 +1,20 @@
+---
+id: GetNotificationsByOrderId
+name: Get Notifications By Order Id
+version: 1.0.0
+summary: Consulta notificações de um pedido.
+owners:
+  - notifications-team
+operation:
+  method: GET
+  path: '/notifications/orders/{orderId}'
+  statusCodes:
+    - '200'
+    - '404'
+schemaPath: schema.json
+---
+<!-- Generated from architecture/. Do not edit manually. -->
+
+## Semântica
+
+Query HTTP implementada conceitualmente por `GetNotificationsByOrderIdFunction`.

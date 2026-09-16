@@ -1,0 +1,30 @@
+{
+  "name": "event-catalog",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "eventcatalog dev",
+    "generate": "tsx generator/src/index.ts",
+    "lint": "eventcatalog-linter",
+    "test": "vitest run",
+    "build": "eventcatalog build",
+    "verify": "npm run test && npm run generate && npm run lint && npm run build",
+    "validate:yaml": "tsx generator/src/validate-yaml.ts"
+  },
+  "dependencies": {
+    "@apidevtools/swagger-parser": "13.0.0",
+    "@asyncapi/parser": "3.6.3",
+    "@eventcatalog/core": "4.10.3",
+    "@eventcatalog/linter": "1.1.17",
+    "@eventcatalog/sdk": "2.28.1",
+    "yaml": "2.9.0",
+    "zod": "4.5.4"
+  },
+  "devDependencies": {
+    "@types/node": "26.4.1",
+    "tsx": "4.23.13",
+    "typescript": "5.9.3",
+    "vitest": "4.1.11"
+  }
+}

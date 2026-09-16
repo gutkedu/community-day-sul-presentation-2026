@@ -1,0 +1,27 @@
+asyncapi: 3.0.0
+info:
+  title: Notifications Service Events
+  version: 1.0.0
+  description: Eventos consumidos pelo domínio Notifications.
+defaultContentType: application/json
+channels:
+  applicationEvents:
+    address: application-events
+    title: Application Events
+    description: EventBridge bus compartilhado entre os domínios.
+    x-architecture-resource:
+      domain: orders
+      logicalId: ApplicationEventBus
+    messages:
+      OrderCreated:
+        $ref: '../orders/asyncapi.yaml#/components/messages/OrderCreated'
+operations:
+  receiveOrderCreated:
+    action: receive
+    summary: Prepara uma notificação de forma idempotente para o pedido aceito.
+    channel:
+      $ref: '#/channels/applicationEvents'
+    messages:
+      - $ref: '#/channels/applicationEvents/messages/OrderCreated'
+    x-architecture-resource:
+      logicalId: OrderCreatedConsumerFunction

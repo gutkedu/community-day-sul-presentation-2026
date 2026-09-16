@@ -1,0 +1,274 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Community Day Sul 2026 - independent static frontends in one stack.
+
+Resources:
+  PresentationBucket:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        IgnorePublicAcls: true
+        BlockPublicPolicy: true
+        RestrictPublicBuckets: true
+      OwnershipControls:
+        Rules:
+          - ObjectOwnership: BucketOwnerEnforced
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      VersioningConfiguration:
+        Status: Enabled
+
+  EventCatalogBucket:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        IgnorePublicAcls: true
+        BlockPublicPolicy: true
+        RestrictPublicBuckets: true
+      OwnershipControls:
+        Rules:
+          - ObjectOwnership: BucketOwnerEnforced
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      VersioningConfiguration:
+        Status: Enabled
+
+  PresentationOriginAccessControl:
+    Type: AWS::CloudFront::OriginAccessControl
+    Properties:
+      OriginAccessControlConfig:
+        Name:
+          Fn::Sub: '${AWS::StackName}-presentation'
+        OriginAccessControlOriginType: s3
+        SigningBehavior: always
+        SigningProtocol: sigv4
+
+  EventCatalogOriginAccessControl:
+    Type: AWS::CloudFront::OriginAccessControl
+    Properties:
+      OriginAccessControlConfig:
+        Name:
+          Fn::Sub: '${AWS::StackName}-event-catalog'
+        OriginAccessControlOriginType: s3
+        SigningBehavior: always
+        SigningProtocol: sigv4
+
+  StaticCachePolicy:
+    Type: AWS::CloudFront::CachePolicy
+    Properties:
+      CachePolicyConfig:
+        Name:
+          Fn::Sub: '${AWS::StackName}-static'
+        MinTTL: 0
+        DefaultTTL: 0
+        MaxTTL: 31536000
+        ParametersInCacheKeyAndForwardedToOrigin:
+          EnableAcceptEncodingBrotli: true
+          EnableAcceptEncodingGzip: true
+          CookiesConfig:
+            CookieBehavior: none
+          HeadersConfig:
+            HeaderBehavior: none
+          QueryStringsConfig:
+            QueryStringBehavior: none
+
+  PresentationRoutingFunction:
+    Type: AWS::CloudFront::Function
+    Properties:
+      Name:
+        Fn::Sub: '${AWS::StackName}-presentation'
+      AutoPublish: true
+      FunctionConfig:
+        Comment: Route Slidev pages to the SPA, preserving static asset requests.
+        Runtime: cloudfront-js-2.0
+      FunctionCode: |
+        function handler(event) {
+          var request = event.request;
+          var lastSegment = request.uri.substring(request.uri.lastIndexOf('/') + 1);
+          if (request.uri !== '/_redirects' && lastSegment.indexOf('.') === -1) {
+            request.uri = '/index.html';
+          }
+          return request;
+        }
+
+  EventCatalogRoutingFunction:
+    Type: AWS::CloudFront::Function
+    Properties:
+      Name:
+        Fn::Sub: '${AWS::StackName}-event-catalog'
+      AutoPublish: true
+      FunctionConfig:
+        Comment: Resolve static catalog pages including versions and JSON example pages.
+        Runtime: cloudfront-js-2.0
+      FunctionCode: |
+        function handler(event) {
+          var request = event.request;
+          var uri = request.uri;
+          // Static API/discovery exports have extensionless object keys.
+          if (uri.startsWith('/api/') || uri.startsWith('/api-catalog/') || uri.startsWith('/.well-known/')) {
+            return request;
+          }
+          var lastSegment = uri.substring(uri.lastIndexOf('/') + 1);
+          var version = /^v?\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.+-]+)?$/.test(lastSegment);
+          var examplePage = /^\/docs\/(commands|queries|events)\/[^/]+\/[^/]+\/examples\/[^/]+$/.test(uri);
+          if (uri.endsWith('/')) {
+            request.uri += 'index.html';
+          } else if (lastSegment.indexOf('.') === -1 || version || examplePage) {
+            request.uri += '/index.html';
+          }
+          return request;
+        }
+
+  PresentationDistribution:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Comment: Community Day presentation
+        Enabled: true
+        IPV6Enabled: true
+        HttpVersion: http2and3
+        DefaultRootObject: index.html
+        Origins:
+          - Id: presentation
+            DomainName:
+              Fn::GetAtt: [PresentationBucket, RegionalDomainName]
+            OriginAccessControlId:
+              Ref: PresentationOriginAccessControl
+            S3OriginConfig:
+              OriginAccessIdentity: ''
+        DefaultCacheBehavior:
+          TargetOriginId: presentation
+          ViewerProtocolPolicy: redirect-to-https
+          AllowedMethods: [GET, HEAD]
+          CachedMethods: [GET, HEAD]
+          Compress: true
+          CachePolicyId:
+            Ref: StaticCachePolicy
+          FunctionAssociations:
+            - EventType: viewer-request
+              FunctionARN:
+                Fn::GetAtt: [PresentationRoutingFunction, FunctionARN]
+        ViewerCertificate:
+          CloudFrontDefaultCertificate: true
+
+  EventCatalogDistribution:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Comment: Community Day EventCatalog
+        Enabled: true
+        IPV6Enabled: true
+        HttpVersion: http2and3
+        DefaultRootObject: index.html
+        Origins:
+          - Id: event-catalog
+            DomainName:
+              Fn::GetAtt: [EventCatalogBucket, RegionalDomainName]
+            OriginAccessControlId:
+              Ref: EventCatalogOriginAccessControl
+            S3OriginConfig:
+              OriginAccessIdentity: ''
+        DefaultCacheBehavior:
+          TargetOriginId: event-catalog
+          ViewerProtocolPolicy: redirect-to-https
+          AllowedMethods: [GET, HEAD]
+          CachedMethods: [GET, HEAD]
+          Compress: true
+          CachePolicyId:
+            Ref: StaticCachePolicy
+          FunctionAssociations:
+            - EventType: viewer-request
+              FunctionARN:
+                Fn::GetAtt: [EventCatalogRoutingFunction, FunctionARN]
+        ViewerCertificate:
+          CloudFrontDefaultCertificate: true
+
+  PresentationBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket:
+        Ref: PresentationBucket
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: ReadFromOwnDistribution
+            Effect: Allow
+            Principal:
+              Service: cloudfront.amazonaws.com
+            Action: s3:GetObject
+            Resource:
+              Fn::Sub: '${PresentationBucket.Arn}/*'
+            Condition:
+              StringEquals:
+                AWS:SourceArn:
+                  Fn::Sub: 'arn:${AWS::Partition}:cloudfront::${AWS::AccountId}:distribution/${PresentationDistribution}'
+          - Sid: DenyInsecureTransport
+            Effect: Deny
+            Principal: '*'
+            Action: 's3:*'
+            Resource:
+              - Fn::GetAtt: [PresentationBucket, Arn]
+              - Fn::Sub: '${PresentationBucket.Arn}/*'
+            Condition:
+              Bool:
+                aws:SecureTransport: 'false'
+
+  EventCatalogBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket:
+        Ref: EventCatalogBucket
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: ReadFromOwnDistribution
+            Effect: Allow
+            Principal:
+              Service: cloudfront.amazonaws.com
+            Action: s3:GetObject
+            Resource:
+              Fn::Sub: '${EventCatalogBucket.Arn}/*'
+            Condition:
+              StringEquals:
+                AWS:SourceArn:
+                  Fn::Sub: 'arn:${AWS::Partition}:cloudfront::${AWS::AccountId}:distribution/${EventCatalogDistribution}'
+          - Sid: DenyInsecureTransport
+            Effect: Deny
+            Principal: '*'
+            Action: 's3:*'
+            Resource:
+              - Fn::GetAtt: [EventCatalogBucket, Arn]
+              - Fn::Sub: '${EventCatalogBucket.Arn}/*'
+            Condition:
+              Bool:
+                aws:SecureTransport: 'false'
+
+Outputs:
+  PresentationBucketName:
+    Value:
+      Ref: PresentationBucket
+  PresentationDistributionId:
+    Value:
+      Ref: PresentationDistribution
+  PresentationUrl:
+    Value:
+      Fn::Sub: 'https://${PresentationDistribution.DomainName}'
+  EventCatalogBucketName:
+    Value:
+      Ref: EventCatalogBucket
+  EventCatalogDistributionId:
+    Value:
+      Ref: EventCatalogDistribution
+  EventCatalogUrl:
+    Value:
+      Fn::Sub: 'https://${EventCatalogDistribution.DomainName}'

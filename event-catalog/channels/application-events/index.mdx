@@ -1,0 +1,18 @@
+---
+id: application-events
+name: Application Events
+version: 1.0.0
+summary: EventBridge bus compartilhado entre os domínios.
+address: application-events
+protocols:
+  - eventbridge
+deliveryGuarantee: at-least-once
+owners:
+  - orders-team
+x-aws-resource: 'orders:ApplicationEventBus'
+---
+<!-- Generated from architecture/. Do not edit manually. -->
+
+## Transporte
+
+EventBridge custom bus representado por `ApplicationEventBus`. Duplicatas são esperadas; consumidores devem ser idempotentes.

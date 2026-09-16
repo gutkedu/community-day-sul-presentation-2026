@@ -1,0 +1,17 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "sku",
+    "available"
+  ],
+  "properties": {
+    "sku": {
+      "type": "string"
+    },
+    "available": {
+      "type": "integer",
+      "minimum": 0
+    }
+  }
+}

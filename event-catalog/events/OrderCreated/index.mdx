@@ -1,0 +1,17 @@
+---
+id: OrderCreated
+name: Order Created
+version: 1.0.0
+summary: Fato emitido quando um pedido foi aceito.
+owners:
+  - orders-team
+schemaPath: schema.json
+x-wire-name: order.created.v1
+---
+<!-- Generated from architecture/. Do not edit manually. -->
+
+## Contrato no wire
+
+Nome do fato no EventBridge: `order.created.v1`.
+
+Produzido por `orders-service` e consumido por `inventory-service` e `notifications-service`.

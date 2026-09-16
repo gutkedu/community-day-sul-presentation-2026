@@ -1,0 +1,12 @@
+{
+  "name": "community-day-hosting",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=22.18.0" },
+  "scripts": {
+    "test": "node --test tests/*.test.mjs",
+    "test:builds": "node scripts/check-builds.mjs",
+    "test:browser": "node tests/browser-smoke.mjs"
+  },
+  "devDependencies": { "yaml": "2.9.0" }
+}

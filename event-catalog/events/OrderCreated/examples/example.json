@@ -1,0 +1,18 @@
+{
+  "metadata": {
+    "eventId": "f71e0b10-84a4-4e79-abf7-32ee36f6b57c",
+    "eventVersion": "1.0.0",
+    "occurredAt": "2026-09-02T14:00:00Z",
+    "correlationId": "339b7862-fcba-4fe2-b18d-a162658bd001"
+  },
+  "data": {
+    "orderId": "6c47d4e8-0e2b-4a46-899e-2f3da4c155a9",
+    "customerId": "08c625ee-7747-4cf0-97c2-d79549150f45",
+    "items": [
+      {
+        "sku": "COMMUNITY-DAY-TICKET",
+        "quantity": 1
+      }
+    ]
+  }
+}

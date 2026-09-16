@@ -1,0 +1,52 @@
+openapi: 3.1.0
+info:
+  title: Notifications Service API
+  version: 1.0.0
+  description: Contrato HTTP de leitura de notificações de um pedido.
+paths:
+  /notifications/orders/{orderId}:
+    get:
+      operationId: GetNotificationsByOrderId
+      summary: Consulta notificações de um pedido.
+      x-kind: query
+      x-architecture-resource:
+        logicalId: GetNotificationsByOrderIdFunction
+      parameters:
+        - name: orderId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          example: 6c47d4e8-0e2b-4a46-899e-2f3da4c155a9
+      responses:
+        '200':
+          description: Notificações encontradas.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Notification'
+              example:
+                - notificationId: 8af90121-ecce-45de-8822-8f703b96cd39
+                  channel: email
+                  status: prepared
+        '404':
+          description: Pedido sem notificações.
+components:
+  schemas:
+    Notification:
+      type: object
+      additionalProperties: false
+      required: [notificationId, channel, status]
+      properties:
+        notificationId:
+          type: string
+          format: uuid
+        channel:
+          type: string
+          enum: [email, sms]
+        status:
+          type: string
+          enum: [prepared, sent]

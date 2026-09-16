@@ -1,0 +1,10 @@
+id: notifications
+name: Notifications
+version: 1.0.0
+summary: Prepara notificações relacionadas a pedidos.
+service:
+  id: notifications-service
+  name: Notifications Service
+  version: 1.0.0
+owners:
+  - notifications-team

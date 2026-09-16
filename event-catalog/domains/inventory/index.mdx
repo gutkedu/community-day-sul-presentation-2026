@@ -1,0 +1,21 @@
+---
+id: inventory
+name: Inventory
+version: 1.0.0
+summary: Mantém a disponibilidade de itens para pedidos.
+owners:
+  - inventory-team
+services:
+  - id: inventory-service
+    version: 1.0.0
+sends: []
+receives:
+  - id: OrderCreated
+    version: 1.0.0
+flows: []
+---
+<!-- Generated from architecture/. Do not edit manually. -->
+
+## Limite de negócio
+
+Mantém a disponibilidade de itens para pedidos.

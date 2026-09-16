@@ -1,0 +1,69 @@
+name: Verify projects and infrastructure
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+env:
+  PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1'
+  SAM_CLI_TELEMETRY: '0'
+
+jobs:
+  frontends:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        project: [presentation, event-catalog]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: |
+            ${{ matrix.project }}/package-lock.json
+            infra/package-lock.json
+      - name: Install locked dependencies
+        run: npm ci
+        working-directory: ${{ matrix.project }}
+      - name: Test
+        run: npm test
+        working-directory: ${{ matrix.project }}
+      - name: Generate and lint catalog
+        if: matrix.project == 'event-catalog'
+        run: npm run generate && npm run lint
+        working-directory: event-catalog
+      - name: Build
+        run: npm run build
+        working-directory: ${{ matrix.project }}
+      - name: Install routing checker
+        run: npm --prefix infra ci --ignore-scripts
+      - name: Verify every built route and asset
+        run: npm --prefix infra run test:builds -- ${{ matrix.project }}
+
+  infrastructure:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: infra/package-lock.json
+      - uses: aws-actions/setup-sam@v3
+        with:
+          version: '1.161.0'
+          use-installer: true
+          token: ${{ github.token }}
+      - run: npm --prefix infra ci --ignore-scripts
+      - run: npm --prefix infra test
+      - run: sam validate --lint --template-file infra/template.yaml --region us-east-1
+      - name: Validate shell entrypoints
+        run: |
+          for script in infra/scripts/deploy-*.sh; do
+            bash -n "$script"
+          done
