@@ -4,3 +4,6 @@
 .env.*
 !.env.example
 .aws-sam/
+
+# Local planning artifacts
+superpowers/
