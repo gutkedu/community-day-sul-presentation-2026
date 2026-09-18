@@ -444,10 +444,14 @@ scene: {}
 </DeckFrame>
 
 <!--
-- [click] Fontes por domínio; a caixa mostra o que extraímos de OpenAPI, AsyncAPI e SAM.
-- [click] O CodePipeline coleta os repositórios; o gerador lê os YAMLs e cria os recursos.
-- [click] O pacote @eventcatalog/core recebe os recursos; npm run build produz o site estático em dist/.
-- Transição: o build produz um site estático pronto para publicação.
+- Visão geral: fontes → arquivos do catálogo → site navegável.
+- [click] Fontes por domínio: contratos e infraestrutura continuam nos repositórios.
+- [click] O gerador traduz os YAMLs em Markdown/MDX com recursos e relações.
+- Recorte real: Create Order envia OrderCreated em sends; Notifications referencia o mesmo evento em receives.
+- Esses arquivos também podem ser escritos manualmente. Aqui automatizamos a geração.
+- Python representa a implementação no trabalho; o gerador deste exemplo usa TypeScript e o SDK.
+- [click] O build do EventCatalog lê os arquivos, conecta as relações e gera páginas e mapas em dist/.
+- Transição: o conteúdo foi gerado e o site foi construído. Agora vamos publicá-lo.
 -->
 
 ---
@@ -464,7 +468,7 @@ scene: {}
 </DeckFrame>
 
 <!--
-- O EventCatalog gera um site estático em dist/.
+- O build que acabamos de ver produz dist/; a geração do conteúdo já terminou.
 - [click] O artefato está pronto para publicação.
 - [click] O S3 hospeda os arquivos estáticos.
 - [click] O CloudFront entrega o catálogo para o time.
@@ -603,14 +607,15 @@ eyebrow: "CONCLUSÃO"
 title: "Obrigado!"
 sourceId: v2s22
 index: 29
-clicks: 0
+clicks: 1
 eyebrow: ""
 scene: {"kind": "closing"}
 ---
 
-<ClosingScene :index="$frontmatter.index" v-bind="$frontmatter.scene" />
+<ClosingScene :index="$frontmatter.index" :step="$clicks" v-bind="$frontmatter.scene" />
 
 <!--
-- Agradecer pela presença.
+- Primeiro, apresentar os links do catálogo e do repositório; dar tempo para a plateia acessar.
 - Os QR codes abrem o repositório GitHub deste projeto e o EventCatalog publicado. Os links também são clicáveis.
+- [click] Revelar “Obrigado!” abaixo dos links e agradecer pela presença.
 -->

@@ -32,4 +32,4 @@ Revisão de 18/09/2026: 29 slides. O slide 7 explicita a promessa da palestra en
 | 26 | `v2s21` | Faça a documentação evoluir com o projeto | 2 |
 | 27 | `ai_architecture_context` | Benefícios para o desenvolvimento com IA | 3 |
 | 28 | Autoral (`authored: true`) | Das dúvidas ao entendimento do sistema | 0 |
-| 29 | `v2s22` | Obrigado! | 0 |
+| 29 | `v2s22` | Obrigado! | 1 |

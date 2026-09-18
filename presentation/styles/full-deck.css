@@ -242,7 +242,8 @@
 .closing-decoration { position:absolute; right:40px; top:100px; display:flex; flex-direction:column; gap:50px; opacity:.26; transform:rotate(-15deg); }.closing-decoration span { padding:30px; border:1px solid var(--query); border-radius:12px; color:var(--query); font:26px 'Roboto Mono'; }.closing-decoration span:nth-child(2) { color:var(--command); border-color:var(--command); transform:translateX(-30px); }.closing-decoration span:nth-child(3) { color:var(--event); border-color:var(--event); }
 .closing-contact { display:flex; flex-direction:column; gap:14px; margin-top:53px; font-size:20px; }.closing-contact strong { font-weight:500; }.closing-contact a { color:var(--query); font-size:17px; text-decoration:none; width:max-content; }
 .closing-scene.final-closing { display:flex; flex-direction:column; align-items:center; justify-content:center; padding:40px 75px 88px; }
-.closing-scene.final-closing .closing-thanks { margin:0 0 32px; font-size:80px; line-height:1; letter-spacing:-4px; text-align:center; }
+.closing-scene.final-closing .closing-thanks { margin:64px 0 0; font-size:92px; line-height:1; letter-spacing:-4px; text-align:center; opacity:0; visibility:hidden; transform:translateY(12px); transition:opacity .35s,transform .35s,visibility .35s; }
+.closing-scene.final-closing .closing-thanks.visible { opacity:1; visibility:visible; transform:translateY(0); }
 .closing-links { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:96px; width:min(960px,100%); position:relative; z-index:1; }
 .closing-link-card { padding:20px 24px; border:1px solid #39536b; border-radius:14px; background:#0d2233cc; display:flex; flex-direction:column; align-items:center; gap:16px; }
 .closing-link-card strong { font-size:24px; font-weight:600; color:#f4f8fb; }

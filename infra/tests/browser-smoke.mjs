@@ -23,7 +23,7 @@ const mime = {
 const cases = [
   ['presentation', 'Presentation', [
     ['/1', 'De rotas HTTP'], ['/presenter/1', 'Jornada:'], ['/18', 'Cada arquivo'],
-    ['/19', 'Como apliquei isso'], ['/29', 'Obrigado!'],
+    ['/19', 'Como apliquei isso'], ['/29', 'GitHub'],
   ]],
   ['event-catalog', 'EventCatalog', [
     ['/docs/events/OrderCreated/1.0.0', 'Order'],
@@ -73,6 +73,10 @@ try {
       const missingStatus = (await fetch(`${base}/absent-file.js`)).status
       assert.ok(missingStatus >= 400 && missingStatus < 500)
       if (site === 'presentation') {
+        const closing = page.locator('.final-closing:visible')
+        const thanks = closing.locator('.closing-thanks')
+        assert.equal(await thanks.isVisible(), false, 'O agradecimento só aparece depois do clique')
+        assert.equal(await thanks.getAttribute('aria-hidden'), 'true')
         const images = page.locator('.final-closing:visible .closing-qr')
         assert.equal(await images.count(), 2)
         for (const [index, link] of links.entries()) {
@@ -95,7 +99,59 @@ try {
           assert.ok(await card.locator('.closing-url').evaluate(link => link.scrollWidth <= link.clientWidth), 'URL deve caber no cartão')
         }
         assert.ok(cardBounds[1].x - cardBounds[0].x - cardBounds[0].width >= 100, 'Cartões devem ficar mais afastados')
-        await page.screenshot({ path: path.join(screenshots, 'closing-qrcodes.png') })
+        await page.screenshot({ path: path.join(screenshots, 'closing-qrcodes.png'), animations: 'disabled' })
+        await page.keyboard.press('ArrowRight')
+        await thanks.waitFor({ state: 'visible' })
+        assert.equal(await thanks.getAttribute('aria-hidden'), 'false')
+        assert.equal(new URL(page.url()).pathname, '/29', 'O clique permanece no encerramento')
+        const thanksBounds = await thanks.boundingBox()
+        assert.ok(thanksBounds.y >= Math.max(...cardBounds.map(box => box.y + box.height)), 'O agradecimento fica abaixo dos QR codes')
+        assert.ok(thanksBounds.y + thanksBounds.height <= bounds.y + bounds.height - 40, 'O agradecimento cabe antes do rodapé')
+        for (const [index, card] of (await closing.locator('.closing-link-card').all()).entries()) {
+          assert.deepEqual(await card.boundingBox(), cardBounds[index], 'Revelar o agradecimento não desloca os QR codes')
+        }
+        await page.screenshot({ path: path.join(screenshots, 'closing-qrcodes-thanks.png'), animations: 'disabled' })
+        await page.reload({ waitUntil: 'networkidle' })
+        await thanks.waitFor({ state: 'visible' })
+        await page.keyboard.press('ArrowLeft')
+        await thanks.waitFor({ state: 'hidden' })
+        assert.equal(await thanks.getAttribute('aria-hidden'), 'true')
+        assert.equal(await images.count(), 2)
+        for (const [index, card] of (await closing.locator('.closing-link-card').all()).entries()) {
+          assert.deepEqual(await card.boundingBox(), cardBounds[index], 'Voltar o clique mantém os QR codes na mesma posição')
+        }
+        console.log('presentation: QR codes preservados ao revelar, recarregar e ocultar o agradecimento.')
+
+        await page.goto(base + '/21', { waitUntil: 'networkidle' })
+        const pipeline = page.locator('.generation-scene:visible')
+        const overview = pipeline.locator('.generator-overview')
+        const example = pipeline.locator('.generated-example')
+        const extraction = pipeline.locator('.pipeline-extraction')
+        await overview.waitFor({ state: 'visible' })
+        assert.equal(await example.isVisible(), false)
+        assert.equal(await extraction.getAttribute('aria-hidden'), 'true')
+        assert.equal(await extraction.evaluate(element => getComputedStyle(element).opacity), '0')
+        await page.screenshot({ path: path.join(screenshots, 'pipeline-step-0.png'), animations: 'disabled' })
+        await page.keyboard.press('ArrowRight')
+        await pipeline.locator('.pipeline-extraction.visible').waitFor({ state: 'visible' })
+        await page.waitForFunction(element => getComputedStyle(element).opacity === '1', await extraction.elementHandle())
+        assert.equal(await extraction.getAttribute('aria-hidden'), 'false')
+        await page.keyboard.press('ArrowRight')
+        await example.waitFor({ state: 'visible' })
+        assert.equal(await example.getAttribute('aria-hidden'), 'false')
+        assert.equal(await overview.isVisible(), false)
+        assert.equal(await extraction.getAttribute('aria-hidden'), 'true')
+        await page.waitForFunction(element => getComputedStyle(element).opacity === '0', await extraction.elementHandle())
+        assert.match(await example.innerText(), /id: orders-create-order[\s\S]*sends:[\s\S]*id: OrderCreated[\s\S]*version: 1\.0\.0/)
+        assert.ok(await example.evaluate(element => element.scrollHeight <= element.clientHeight), 'O exemplo de MDX deve caber no painel')
+        await page.screenshot({ path: path.join(screenshots, 'pipeline-step-2.png'), animations: 'disabled' })
+        await page.keyboard.press('ArrowRight')
+        await pipeline.locator('.pipeline-output.focused').waitFor({ state: 'visible' })
+        await example.waitFor({ state: 'hidden' })
+        await overview.waitFor({ state: 'visible' })
+        await page.keyboard.press('ArrowLeft')
+        await example.waitFor({ state: 'visible' })
+        console.log('presentation: fontes, exemplo MDX e construção do site avançam e retornam corretamente.')
       }
       if (site === 'event-catalog') {
         const schema = await (await fetch(`${base}/generated/events/OrderCreated/schema.json`)).json()
