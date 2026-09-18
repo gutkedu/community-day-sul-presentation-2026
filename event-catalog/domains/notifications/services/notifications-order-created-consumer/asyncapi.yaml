@@ -1,14 +1,15 @@
 asyncapi: 3.0.0
 info:
-  title: Inventory Service Events
+  title: Notifications Service Events
   version: 1.0.0
-  description: Eventos consumidos pelo domínio Inventory.
+  description: Eventos consumidos pelo domínio Notifications.
 defaultContentType: application/json
 channels:
   applicationEvents:
     address: application-events
     title: Application Events
     description: EventBridge bus compartilhado entre os domínios.
+    x-protocol: eventbridge
     x-architecture-resource:
       domain: orders
       logicalId: ApplicationEventBus
@@ -18,7 +19,7 @@ channels:
 operations:
   receiveOrderCreated:
     action: receive
-    summary: Reserva estoque de forma idempotente para o pedido aceito.
+    summary: Prepara uma notificação de forma idempotente para o pedido aceito.
     channel:
       $ref: '#/channels/applicationEvents'
     messages:

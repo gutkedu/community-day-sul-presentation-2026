@@ -6,12 +6,12 @@ summary: Fato emitido quando um pedido foi aceito.
 owners:
   - orders-team
 schemaPath: schema.json
-x-wire-name: order.created.v1
+x-wire-name: orders.order-created.v1
 ---
 <!-- Generated from architecture/. Do not edit manually. -->
 
 ## Contrato no wire
 
-Nome do fato no EventBridge: `order.created.v1`.
+Nome da mensagem: `orders.order-created.v1`.
 
-Produzido por `orders-service` e consumido por `inventory-service` e `notifications-service`.
+Produzida por `orders-create-order` e consumida por `notifications-order-created-consumer`.

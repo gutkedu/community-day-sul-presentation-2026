@@ -6,11 +6,15 @@ summary: Mantém a disponibilidade de itens para pedidos.
 owners:
   - inventory-team
 services:
-  - id: inventory-service
+  - id: inventory-get-inventory-by-sku
+    version: 1.0.0
+  - id: inventory-reserve-inventory
+    version: 1.0.0
+  - id: inventory-stock-api
     version: 1.0.0
 sends: []
 receives:
-  - id: OrderCreated
+  - id: ReserveInventory
     version: 1.0.0
 flows: []
 ---

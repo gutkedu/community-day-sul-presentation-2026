@@ -9,6 +9,7 @@ channels:
     address: application-events
     title: Application Events
     description: EventBridge bus compartilhado entre os domínios.
+    x-protocol: eventbridge
     x-architecture-resource:
       domain: orders
       logicalId: ApplicationEventBus

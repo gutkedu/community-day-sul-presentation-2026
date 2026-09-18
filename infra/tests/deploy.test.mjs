@@ -79,6 +79,22 @@ test('catalog deploy generates and lints contracts and publishes only its own fr
   assert.equal(deployments(result.calls).length, 0)
 })
 
+test('SAM metadata matching resource IDs does not block a valid publication', async () => {
+  const result = await invoke('presentation', 'sam-metadata')
+  succeeded(result)
+  assert.equal(uploads(result.calls).length, 3)
+  assert.equal(invalidations(result.calls).length, 1)
+})
+
+for (const scenario of ['sam-metadata-changed', 'sam-metadata-extra', 'sam-metadata-wrong-id']) {
+  test(`SAM metadata does not hide a real difference: ${scenario}`, async () => {
+    const result = await invoke('presentation', scenario)
+    assert.notEqual(result.status, 0)
+    assert.equal(uploads(result.calls).length, 0)
+    assert.equal(invalidations(result.calls).length, 0)
+  })
+}
+
 test('all validates/builds both projects before changing AWS and deploys the stack once', async () => {
   const result = await invoke('all')
   succeeded(result)

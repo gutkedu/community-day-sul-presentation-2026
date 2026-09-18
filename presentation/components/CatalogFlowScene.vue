@@ -1,11 +1,64 @@
 <script setup lang="ts">
-defineProps<{ step: number }>()
+import { computed } from 'vue'
+
+const props = defineProps<{ step: number }>()
+const current = computed(() => Math.max(0, Math.min(2, Math.trunc(props.step))))
 </script>
+
 <template>
-  <section class="catalog-scene catalog-flow-scene">
-    <div class="catalog-toolbar"><span class="status-led" />EVENTCATALOG<span class="catalog-route">CreateOrder → decisão → OrderCreated</span><span class="catalog-view">Captura local</span></div>
-    <div class="catalog-viewport" :class="`flow-capture-step-${step}`"><img src="/catalog/create-order-flow.png" alt="Captura real: CreateOrder passa pela decisão Pedido aceito; no caminho sim, OrderCreated é comunicado a Inventory e Notifications."/><div class="catalog-zoom-badge">{{ ['VISÃO GERAL', 'INTENÇÃO + DECISÃO', 'FATO + REAÇÕES'][step] }}</div></div>
-    <div class="catalog-answer"><span class="label">{{ ['O FLUXO', 'ANTES DO FATO', 'DEPOIS DO FATO'][step] }}</span><p>{{ ['Uma operação, suas decisões e seus efeitos.', 'CreateOrder ainda precisa passar pela decisão.', 'OrderCreated conecta o fato aos consumidores.'][step] }}</p></div>
-    <p class="capture-color-note">A captura conserva as cores do catálogo original.</p>
+  <section class="catalog-flow-scene" :data-step="current">
+    <figure class="catalog-map-frame">
+      <video
+        class="catalog-map-media"
+        src="/screenshots/eventcatalog-service-map.webm"
+        poster="/screenshots/eventcatalog-service-map.png"
+        autoplay
+        muted
+        loop
+        playsinline
+        preload="auto"
+        aria-label="Mapa real do EventCatalog com os serviços CreateOrder, ReserveInventory e OrderCreated, tabela DynamoDB, comando SQS e evento EventBridge"
+      >
+        <span>
+          Mapa real do EventCatalog com os serviços CreateOrder, ReserveInventory e OrderCreated.
+        </span>
+      </video>
+    </figure>
   </section>
 </template>
+
+<style scoped>
+.catalog-flow-scene {
+  height: 420px;
+}
+
+.catalog-map-frame {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+  border: 1px solid #2d4254;
+  border-radius: 14px;
+  background: #111821;
+  box-shadow: 0 18px 42px #050a1099;
+}
+
+.catalog-map-media {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 51%;
+  transform: translate3d(0, 0, 0) scale(1);
+  transition: transform .7s cubic-bezier(.22, .8, .22, 1);
+  will-change: transform;
+}
+
+[data-step="1"] .catalog-map-media {
+  transform: translate3d(18%, 0, 0) scale(1.45);
+}
+
+[data-step="2"] .catalog-map-media {
+  transform: translate3d(-18%, 0, 0) scale(1.45);
+}
+</style>

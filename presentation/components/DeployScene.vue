@@ -1,46 +1,47 @@
 <script setup lang="ts">
-defineProps<{ step: number }>()
+import { computed } from 'vue'
+
+const props = defineProps<{ step: number }>()
+const current = computed(() => Math.max(0, Math.min(3, Math.trunc(props.step))))
 </script>
 
 <template>
-  <section class="deploy-scene">
-    <div class="deploy-stage">
-      <article class="deploy-audit" :class="{ focused: step === 1 }">
-        <span class="label">SITE GERADO</span>
-        <carbon-logo-python class="deploy-python" aria-hidden="true" />
-        <h2>Auditoria em Python</h2>
-        <code>dist/</code>
-        <p>Verifica páginas, recursos e índices antes da publicação.</p>
-      </article>
-
-      <span class="deploy-arrow" aria-hidden="true">→</span>
-
-      <div class="deploy-gate" :class="{ focused: step >= 1 }">
-        <span>PASSOU?</span>
+  <section class="pipeline-scene deploy-scene" :data-step="current">
+    <div class="pipeline-stage deploy-pipeline-stage">
+      <div class="deploy-pipeline-card" :class="{ focused: current === 1 }">
+        <span class="label">01 / ARTEFATO</span>
+        <carbon-folder-details aria-hidden="true" />
+        <h2><code>dist/</code></h2>
+        <p>HTML, CSS e JavaScript</p>
       </div>
 
-      <div class="deploy-branch-arrows" aria-hidden="true"><span>↗</span><span>↘</span></div>
+      <span class="pipeline-arrow" aria-hidden="true">→</span>
 
-      <div class="deploy-outcomes">
-        <article class="deploy-failure" :class="{ focused: step === 2 }">
-          <span class="label">SE FALHAR</span>
-          <h2>Interrompe o deploy</h2>
-          <p>Mantém o catálogo atual.</p>
-        </article>
+      <div class="deploy-pipeline-card" :class="{ focused: current === 2 }">
+        <span class="label">02 / HOSPEDAGEM</span>
+        <img src="/aws/s3.svg" alt="" />
+        <h2>S3 privado</h2>
+        <p>Arquivos estáticos</p>
+      </div>
 
-        <article class="deploy-success" :class="{ focused: step === 3 }">
-          <span class="label">SE PASSAR</span>
-          <div class="publish-flow">
-            <div><strong>S3 privado</strong><small>Hospeda o <code>dist/</code></small></div>
-            <b>→</b>
-            <div><strong>CloudFront</strong><small>Basic Auth</small></div>
-            <b>→</b>
-            <div><strong>Usuário</strong><small>Catálogo atualizado</small></div>
+      <span class="pipeline-arrow" aria-hidden="true">→</span>
+
+      <div class="deploy-pipeline-card" :class="{ focused: current === 3 }">
+        <span class="label">03 / DISTRIBUIÇÃO</span>
+        <img src="/aws/cloudfront.svg" alt="" />
+        <h2>CloudFront</h2>
+        <p>Entrega o catálogo pela CDN</p>
+        <div class="deploy-audience">
+          <carbon-user-avatar aria-hidden="true" />
+          <div>
+            <span class="label">ACESSO</span>
+            <strong>Usuário</strong>
+            <span>Catálogo atualizado</span>
           </div>
-        </article>
+        </div>
       </div>
     </div>
 
-    <p class="story-takeaway">Um catálogo inválido nunca substitui a versão publicada.</p>
+    <p class="story-takeaway">O resultado da pipeline é documentação estática, navegável e distribuída pela CDN.</p>
   </section>
 </template>

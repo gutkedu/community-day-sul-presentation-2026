@@ -37,8 +37,14 @@ export function runMock(command) {
   if (args[0] === 'sts') {
     console.log(JSON.stringify({ Account: '123456789012', Arn: 'arn:aws:iam::123456789012:user/test', UserId: 'test' }))
   } else if (args[0] === 'cloudformation' && args[1] === 'get-template') {
-    console.log(JSON.stringify({ TemplateBody: scenario === 'sam-cancelled' || scenario === 'template-outdated'
-      ? 'Resources: {}' : readFileSync(path.join(process.cwd(), 'infra', 'template.yaml'), 'utf8') }))
+    let template = readFileSync(path.join(process.cwd(), 'infra', 'template.yaml'), 'utf8')
+    if (scenario.startsWith('sam-metadata')) {
+      template = template.replace(/^(  (\w+):\n    Type:[^\n]+\n)/gm, '$1    Metadata:\n      SamResourceId: $2\n')
+      if (scenario === 'sam-metadata-changed') template = template.replace('Status: Enabled', 'Status: Suspended')
+      if (scenario === 'sam-metadata-extra') template = template.replace('SamResourceId: PresentationBucket', 'SamResourceId: PresentationBucket\n      Unexpected: true')
+      if (scenario === 'sam-metadata-wrong-id') template = template.replace('SamResourceId: PresentationBucket', 'SamResourceId: DifferentBucket')
+    }
+    console.log(JSON.stringify({ TemplateBody: scenario === 'sam-cancelled' || scenario === 'template-outdated' ? 'Resources: {}' : template }))
   } else if (args[0] === 'cloudformation') {
     if (scenario === 'stack-missing') process.exit(1)
     const outputs = {

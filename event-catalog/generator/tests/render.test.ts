@@ -39,21 +39,35 @@ describe('catalog rendering', () => {
     const result = await generateCatalog({ catalogRoot: root });
     expect(result.resources).toEqual(expect.arrayContaining([
       'domains/orders/index.mdx',
-      'domains/orders/services/orders-service/index.mdx',
+      'domains/orders/services/orders-create-order/index.mdx',
+      'domains/inventory/services/inventory-reserve-inventory/index.mdx',
+      'domains/notifications/services/notifications-order-created-consumer/index.mdx',
+      'containers/orders-table/index.mdx',
+      'containers/inventory-table/index.mdx',
+      'containers/notifications-table/index.mdx',
       'commands/CreateOrder/index.mdx',
+      'commands/ReserveInventory/index.mdx',
       'queries/GetOrderById/index.mdx',
       'events/OrderCreated/index.mdx',
       'channels/application-events/index.mdx',
+      'channels/inventory-commands/index.mdx',
       'flows/CreateOrderFlow/index.mdx',
     ]));
-    const ordersService = await readFile(path.join(root, 'domains/orders/services/orders-service/index.mdx'), 'utf8');
+    const ordersService = await readFile(path.join(root, 'domains/orders/services/orders-create-order/index.mdx'), 'utf8');
     expect(ordersService).toContain('openapi.yaml');
     expect(ordersService).toContain('asyncapi.yaml');
     expect(ordersService).toContain('template.yaml');
+    expect(ordersService).toContain('writesTo:\n  - id: orders-table');
+    expect(ordersService).toContain('readsFrom:\n  - id: orders-table');
+    const ordersTable = await readFile(path.join(root, 'containers/orders-table/index.mdx'), 'utf8');
+    expect(ordersTable).toContain('container_type: database');
+    expect(ordersTable).toContain('technology: Amazon DynamoDB');
     const event = await readFile(path.join(root, 'events/OrderCreated/index.mdx'), 'utf8');
-    expect(event).toContain('orders-service');
-    expect(event).toContain('inventory-service');
-    expect(event).toContain('notifications-service');
+    expect(event).toContain('orders-create-order');
+    expect(event).toContain('notifications-order-created-consumer');
+    const command = await readFile(path.join(root, 'commands/ReserveInventory/index.mdx'), 'utf8');
+    expect(command).toContain('orders-create-order');
+    expect(command).toContain('inventory-reserve-inventory');
     expect(await readFile(path.join(root, 'manual-marker.txt'), 'utf8')).toBe('preserve me\n');
   });
 

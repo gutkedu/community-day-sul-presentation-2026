@@ -72,6 +72,20 @@ const takeaways = {
         <svg viewBox="0 0 1152 278" class="concept-wires" aria-hidden="true"><path d="M268 245H884m-12-6 12 6-12 6" :class="{ lit: frame >= 1 }"/><path d="M576 216V245" stroke-dasharray="4 5" :class="{ lit: frame >= 2 }"/><circle v-if="animate && frame === 1" class="concept-packet responsibility-send" cx="278" cy="245" r="5"/><circle v-if="animate && frame === 3" class="concept-packet responsibility-receive" cx="736" cy="245" r="5"/></svg>
         <article class="concept-node responsibility-producer" :class="{ emphasized: frame === 1 || frame === 3 }"><span class="label">PRODUTOR</span><h2>Publica o fato</h2><p>Define o que a mensagem significa.</p><span class="concept-status">Mantém e evolui o contrato</span></article>
         <article class="concept-node responsibility-contract" :class="{ emphasized: frame >= 2 }"><span class="label">CONTRATO</span><h2>Entendimento<br>compartilhado</h2><div class="contract-fields"><span>Significado</span><span>Campos</span><span>Versão</span></div></article>
+        <div class="responsibility-contract-parts" :class="{ emphasized: frame >= 2 }">
+          <span class="label">ESTRUTURA DO CONTRATO</span>
+          <div class="responsibility-parts-row">
+            <div class="responsibility-part">
+              <code>metadata</code>
+              <span>Identidade · versão · correlação</span>
+            </div>
+            <span class="responsibility-part-divider">+</span>
+            <div class="responsibility-part">
+              <code>data</code>
+              <span>Conteúdo de negócio</span>
+            </div>
+          </div>
+        </div>
         <article class="concept-node responsibility-consumer" :class="{ emphasized: frame === 3 }"><span class="label">CONSUMIDOR</span><h2>Reage ao fato</h2><p>Interpreta a mensagem e executa sua parte.</p><span class="concept-status">Depende desse contrato</span></article>
       </div>
     </template>
@@ -106,6 +120,15 @@ const takeaways = {
 .event-producer { left:0; top:45px; height:200px; }.event-message { left:430px; top:45px; width:290px; height:200px; }.concept-scene .event-message code { margin-top:25px; font-size:23px; }.event-consumer { left:904px; width:248px; height:112px; padding:15px 17px; }.event-consumer h3 { margin:8px 0; }.event-consumer .concept-status { font-size:12px; }
 .responsibility-producer { left:0; top:28px; width:268px; height:230px; }.responsibility-contract { left:426px; top:0; width:300px; height:216px; }.responsibility-consumer { left:884px; top:28px; width:268px; height:230px; }
 .responsibility-diagram h2 { font-size:27px; }.contract-fields { display:flex; gap:7px; margin-top:23px; }.contract-fields span { border:1px solid #547086; padding:5px 8px; border-radius:5px; font-size:12px; color:#d3e1ed; }
+.responsibility-contract-parts { position:absolute; z-index:2; left:361px; top:220px; width:430px; padding:10px 12px 11px; border:1px solid #3b526a; border-radius:9px; background:#0d1b2b; box-shadow:0 12px 30px #02070d99; transition:border-color .4s,background .4s; }
+.responsibility-contract-parts.emphasized { border-color:var(--event); background:#30241c; }
+.responsibility-contract-parts>.label { display:block; margin-bottom:7px; color:var(--event); font-size:9px; letter-spacing:1px; }
+.responsibility-parts-row { display:grid; grid-template-columns:1fr 22px 1fr; align-items:stretch; }
+.responsibility-part { padding:7px 9px; border-left:2px solid var(--event); background:#152638; }
+.responsibility-part code,.responsibility-part span { display:block; }
+.concept-scene .responsibility-part code { color:#f1c39f; font-size:13px; line-height:1.2; }
+.responsibility-part span { margin-top:3px; color:#b8c9d9; font-size:10px; line-height:1.25; }
+.responsibility-part-divider { display:flex; align-items:center; justify-content:center; color:#71879d; font-size:17px; }
 @keyframes packet-right { from { transform:translateX(0); opacity:0; } 15% { opacity:1; } 85% { opacity:1; } to { transform:translateX(194px); opacity:0; } }
 @keyframes packet-left { from { transform:translateX(0); opacity:0; } 15% { opacity:1; } 85% { opacity:1; } to { transform:translateX(-194px); opacity:0; } }
 @keyframes event-send { from { transform:translateX(0); opacity:0; } 15% { opacity:1; } 85% { opacity:1; } to { transform:translateX(168px); opacity:0; } }

@@ -1,0 +1,28 @@
+---
+id: notifications-get-notifications-by-order-id
+name: Get Notifications By Order Id
+version: 1.0.0
+summary: Lambda GetNotificationsByOrderIdFunction do domínio notifications.
+owners:
+  - notifications-team
+sends: []
+receives:
+  - id: GetNotificationsByOrderId
+    version: 1.0.0
+writesTo: []
+readsFrom:
+  - id: notifications-table
+    version: 1.0.0
+specifications:
+  - type: openapi
+    path: openapi.yaml
+    name: OpenAPI 3.1
+flows: []
+---
+<!-- Generated from architecture/. Do not edit manually. -->
+
+## Componente de serviço
+
+Lambda `GetNotificationsByOrderIdFunction` extraída do [AWS SAM](./template.yaml).
+
+Lê de `notifications-table`.

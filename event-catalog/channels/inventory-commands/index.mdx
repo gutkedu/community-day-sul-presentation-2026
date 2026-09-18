@@ -1,0 +1,18 @@
+---
+id: inventory-commands
+name: Inventory Commands
+version: 1.0.0
+summary: Fila de comandos de reserva de estoque.
+address: inventory-commands
+protocols:
+  - sqs
+deliveryGuarantee: at-least-once
+owners:
+  - inventory-team
+x-aws-resource: 'inventory:InventoryCommandsQueue'
+---
+<!-- Generated from architecture/. Do not edit manually. -->
+
+## Transporte
+
+Fila SQS representado por `InventoryCommandsQueue`. Duplicatas são esperadas; consumidores devem ser idempotentes.

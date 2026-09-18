@@ -1,15 +1,15 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
-Description: Recursos documentais do domínio Inventory; não destinados a deploy nesta demonstração.
+Description: Recursos documentais do domínio Notifications; não destinados a deploy nesta demonstração.
 Parameters:
   ApplicationEventBusArn:
     Type: String
 Resources:
-  InventoryApi:
+  NotificationsApi:
     Type: AWS::Serverless::Api
     Properties:
       StageName: demo
-  GetInventoryBySkuFunction:
+  GetNotificationsByOrderIdFunction:
     Type: AWS::Serverless::Function
     Metadata:
       DocumentationOnly: true
@@ -17,13 +17,17 @@ Resources:
       Runtime: nodejs22.x
       Handler: not-implemented.handler
       CodeUri: not-implemented/
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName:
+              Ref: NotificationsTable
       Events:
-        GetInventoryBySku:
+        GetNotificationsByOrderId:
           Type: Api
           Properties:
             RestApiId:
-              Ref: InventoryApi
-            Path: /inventory/{sku}
+              Ref: NotificationsApi
+            Path: /notifications/orders/{orderId}
             Method: get
   OrderCreatedConsumerFunction:
     Type: AWS::Serverless::Function
@@ -33,6 +37,10 @@ Resources:
       Runtime: nodejs22.x
       Handler: not-implemented.handler
       CodeUri: not-implemented/
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName:
+              Ref: NotificationsTable
   OrderCreatedRule:
     Type: AWS::Events::Rule
     Properties:
@@ -42,23 +50,23 @@ Resources:
         source:
           - com.communityday.orders
         detail-type:
-          - order.created.v1
+          - orders.order-created.v1
       Targets:
         - Arn:
             Fn::GetAtt: [OrderCreatedConsumerFunction, Arn]
-          Id: InventoryOrderCreatedConsumer
+          Id: NotificationsOrderCreatedConsumer
       State: ENABLED
-  InventoryTable:
+  NotificationsTable:
     Type: AWS::DynamoDB::Table
     DeletionPolicy: Retain
     UpdateReplacePolicy: Retain
     Properties:
       BillingMode: PAY_PER_REQUEST
       AttributeDefinitions:
-        - AttributeName: sku
+        - AttributeName: notificationId
           AttributeType: S
       KeySchema:
-        - AttributeName: sku
+        - AttributeName: notificationId
           KeyType: HASH
       SSESpecification:
         SSEEnabled: true

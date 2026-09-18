@@ -1,27 +1,27 @@
 asyncapi: 3.0.0
 info:
-  title: Inventory Service Events
+  title: Inventory Service Messages
   version: 1.0.0
-  description: Eventos consumidos pelo domínio Inventory.
+  description: Commands consumidos pelo domínio Inventory.
 defaultContentType: application/json
 channels:
-  applicationEvents:
-    address: application-events
-    title: Application Events
-    description: EventBridge bus compartilhado entre os domínios.
+  inventoryCommands:
+    address: inventory-commands
+    title: Inventory Commands
+    description: Fila de comandos de reserva de estoque.
+    x-protocol: sqs
     x-architecture-resource:
-      domain: orders
-      logicalId: ApplicationEventBus
+      logicalId: InventoryCommandsQueue
     messages:
-      OrderCreated:
-        $ref: '../orders/asyncapi.yaml#/components/messages/OrderCreated'
+      ReserveInventory:
+        $ref: '../orders/asyncapi.yaml#/components/messages/ReserveInventory'
 operations:
-  receiveOrderCreated:
+  receiveReserveInventory:
     action: receive
-    summary: Reserva estoque de forma idempotente para o pedido aceito.
+    summary: Reserva estoque de forma idempotente para o pedido.
     channel:
-      $ref: '#/channels/applicationEvents'
+      $ref: '#/channels/inventoryCommands'
     messages:
-      - $ref: '#/channels/applicationEvents/messages/OrderCreated'
+      - $ref: '#/channels/inventoryCommands/messages/ReserveInventory'
     x-architecture-resource:
-      logicalId: OrderCreatedConsumerFunction
+      logicalId: ReserveInventoryFunction

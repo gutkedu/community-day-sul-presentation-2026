@@ -12,8 +12,8 @@ const live = computed(() => isActive.value && !nav.isPrintMode.value
 const connections = [
   { id: 'command', d: 'M104 149V194Q104 210 120 210H168', color: 'var(--command)', delay: '0.2s' },
   { id: 'event', d: 'M168 270H58Q42 270 42 286V358Q42 374 58 374H64', color: 'var(--event)', delay: '2s' },
-  { id: 'inventory', d: 'M276 374H328Q338 374 348 371H389', color: 'var(--event)', delay: '3.8s' },
-  { id: 'notifications', d: 'M276 374H322Q338 374 338 390V457Q338 473 354 473H389', color: 'var(--event)', delay: '3.8s' },
+  { id: 'consumer-a', d: 'M276 374H328Q338 374 348 371H389', color: 'var(--event)', delay: '3.8s' },
+  { id: 'consumer-b', d: 'M276 374H322Q338 374 338 390V457Q338 473 354 473H389', color: 'var(--event)', delay: '3.8s' },
 ]
 </script>
 
@@ -26,7 +26,7 @@ const connections = [
       <div class="cover-topics">OPENAPI · ASYNCAPI · AWS · EVENTCATALOG</div>
       <div class="cover-author"><strong>Eduardo Pedó Gutkoski</strong></div>
     </div>
-    <div class="cover-art" aria-label="CreateOrder chega a Orders, que publica OrderCreated para Inventory e Notifications">
+    <div class="cover-art" aria-label="Command chega a um serviço, que publica um Event para dois consumidores">
       <div class="art-grid" />
       <svg viewBox="0 0 560 550" class="cover-wires" aria-hidden="true">
         <g class="connection-tracks">
@@ -37,14 +37,13 @@ const connections = [
             :style="{ stroke: connection.color, animationDelay: connection.delay }" />
         </g>
       </svg>
-      <div class="cover-command"><span class="label command">INTENÇÃO</span><code>CreateOrder</code></div>
-      <div class="cover-service"><span class="label">QUEM DECIDE</span><strong>Orders</strong><span class="service-check">✓</span></div>
-      <div class="cover-event"><span class="label event">FATO</span><code>OrderCreated</code></div>
-      <div class="cover-consumer first">Inventory <span>↗</span></div>
-      <div class="cover-consumer second">Notifications <span>↗</span></div>
-      <span class="art-caption">SIGNIFICADO ANTES DO TRANSPORTE</span>
+      <div class="cover-command"><span class="label command">COMMAND</span><code>Solicitar mudança</code></div>
+      <div class="cover-service"><span class="label">SERVIÇO</span><strong>Domínio</strong><span class="service-check">✓</span></div>
+      <div class="cover-event"><span class="label event">EVENT</span><code>Fato ocorrido</code></div>
+      <div class="cover-consumer first">Consumidor A <span>↗</span></div>
+      <div class="cover-consumer second">Consumidor B <span>↗</span></div>
     </div>
-    <footer class="cover-footer"><span>AWS COMMUNITY DAY SUL 2026</span><span>DE ROTAS HTTP A EVENTOS <b>01 / {{ SLIDE_COUNT }}</b></span></footer>
+    <footer class="cover-footer"><span>AWS COMMUNITY DAY SUL 2026</span><span><b>01 / {{ SLIDE_COUNT }}</b></span></footer>
   </div>
 </template>
 

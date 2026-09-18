@@ -2,13 +2,14 @@ import { access } from 'node:fs/promises';
 import path from 'node:path';
 import { DiagnosticSeverity, fromFile, Parser } from '@asyncapi/parser';
 import type { DomainSource } from './discover.js';
+import { serviceIdForFunction } from './parse-sam.js';
 import { readYaml, resolveJsonPointer, type YamlObject } from './yaml.js';
 
 export interface MessageModel {
   id: string;
   name: string;
   summary: string;
-  kind: 'event';
+  kind: 'command' | 'event';
   version: string;
   wireName: string;
   producerDomainId: string;
@@ -83,7 +84,6 @@ export async function parseAsyncApi(
   source: DomainSource,
   architectureRoot: string,
   domainId: string,
-  serviceId: string,
   serviceName: string,
   version: string,
 ): Promise<AsyncApiModel> {
@@ -104,39 +104,21 @@ export async function parseAsyncApi(
   const channels = Object.entries<any>(document.channels ?? {}).map(([, channel]) => {
     const resource = channel['x-architecture-resource'];
     if (!resource?.logicalId) throw new Error(`${file}: channels.*.x-architecture-resource.logicalId is required`);
+    const protocol = channel['x-protocol'];
+    if (protocol !== 'eventbridge' && protocol !== 'sqs') {
+      throw new Error(`${file}: channels.*.x-protocol must be eventbridge or sqs`);
+    }
     return {
       id: channel.address,
       name: channel.title ?? channel.address,
       summary: channel.description ?? `Canal ${channel.address}`,
       version,
       address: channel.address,
-      protocol: 'eventbridge',
+      protocol,
       resourceDomainId: resource.domain ?? domainId,
       resourceLogicalId: resource.logicalId,
       sourceFile: file,
     } satisfies ChannelModel;
-  });
-
-  const messages = Object.entries<any>(document.components?.messages ?? {}).map(([componentId, message]) => {
-    const kind = message['x-kind'];
-    if (kind !== 'event') throw new Error(`${file}: components.messages.${componentId}.x-kind must be event`);
-    const channelId = channels.find((channel) => Object.values<any>(document.channels ?? {}).some((channelDefinition) => channelDefinition.messages?.[componentId]))?.id;
-    if (!channelId) throw new Error(`${file}: components.messages.${componentId} has no known channel`);
-    const payload = message.payload?.$ref ? resolveJsonPointer(document, message.payload.$ref, file) : message.payload;
-    return {
-      id: message.name,
-      name: message.title ?? message.name,
-      summary: message.summary ?? message.title ?? message.name,
-      kind,
-      version,
-      wireName: message['x-wire-name'],
-      producerDomainId: domainId,
-      producerServiceId: serviceId,
-      channelId,
-      payload,
-      example: message.examples?.[0]?.payload,
-      sourceFile: file,
-    } satisfies MessageModel;
   });
 
   const relationships: MessageRelationship[] = [];
@@ -155,7 +137,7 @@ export async function parseAsyncApi(
       if (!messageId) throw new Error(`${file}: operations.${operationId}.messages contains an unresolved message`);
       relationships.push({
         messageId,
-        serviceId,
+        serviceId: serviceIdForFunction(domainId, logicalId),
         domainId,
         direction: operation.action,
         resourceLogicalId: logicalId,
@@ -164,5 +146,33 @@ export async function parseAsyncApi(
       });
     }
   }
+
+  const messages = Object.entries<any>(document.components?.messages ?? {}).map(([componentId, message]) => {
+    const kind = message['x-kind'];
+    if (kind !== 'command' && kind !== 'event') {
+      throw new Error(`${file}: components.messages.${componentId}.x-kind must be command or event`);
+    }
+    const channelDefinition = Object.values<any>(document.channels ?? {}).find((candidate) => candidate.messages?.[componentId]);
+    const channelId = channelDefinition?.address;
+    if (!channelId) throw new Error(`${file}: components.messages.${componentId} has no known channel`);
+    const messageId = message.name;
+    const producer = relationships.find((relationship) => relationship.messageId === messageId && relationship.direction === 'send');
+    if (!producer) throw new Error(`${file}: components.messages.${componentId} has no send operation`);
+    const payload = message.payload?.$ref ? resolveJsonPointer(document, message.payload.$ref, file) : message.payload;
+    return {
+      id: messageId,
+      name: message.title ?? messageId,
+      summary: message.summary ?? message.title ?? messageId,
+      kind,
+      version,
+      wireName: message['x-wire-name'],
+      producerDomainId: producer.domainId,
+      producerServiceId: producer.serviceId,
+      channelId,
+      payload,
+      example: message.examples?.[0]?.payload,
+      sourceFile: file,
+    } satisfies MessageModel;
+  });
   return { messages, relationships, channels };
 }

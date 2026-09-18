@@ -1,0 +1,28 @@
+---
+id: orders-get-order-by-id
+name: Get Order By Id
+version: 1.0.0
+summary: Lambda GetOrderByIdFunction do domínio orders.
+owners:
+  - orders-team
+sends: []
+receives:
+  - id: GetOrderById
+    version: 1.0.0
+writesTo: []
+readsFrom:
+  - id: orders-table
+    version: 1.0.0
+specifications:
+  - type: openapi
+    path: openapi.yaml
+    name: OpenAPI 3.1
+flows: []
+---
+<!-- Generated from architecture/. Do not edit manually. -->
+
+## Componente de serviço
+
+Lambda `GetOrderByIdFunction` extraída do [AWS SAM](./template.yaml).
+
+Lê de `orders-table`.

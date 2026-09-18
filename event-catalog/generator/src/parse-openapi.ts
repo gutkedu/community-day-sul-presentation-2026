@@ -1,5 +1,6 @@
 import SwaggerParser from '@apidevtools/swagger-parser';
 import type { DomainSource } from './discover.js';
+import { serviceIdForFunction } from './parse-sam.js';
 import { readYaml, resolveJsonPointer, type YamlObject } from './yaml.js';
 
 export type OperationKind = 'command' | 'query';
@@ -28,7 +29,7 @@ function dereferenceSchema(document: YamlObject, schema: any, file: string): unk
   return schema;
 }
 
-export async function parseOpenApi(source: DomainSource, domainId: string, serviceId: string, serviceName: string, version: string): Promise<OperationModel[]> {
+export async function parseOpenApi(source: DomainSource, domainId: string, serviceName: string, version: string): Promise<OperationModel[]> {
   const file = source.files['openapi.yaml'];
   try {
     await SwaggerParser.validate(file);
@@ -62,7 +63,7 @@ export async function parseOpenApi(source: DomainSource, domainId: string, servi
         summary: operation.summary ?? `${method.toUpperCase()} ${route}`,
         kind,
         domainId,
-        serviceId,
+        serviceId: serviceIdForFunction(domainId, resourceLogicalId),
         version,
         method: method.toUpperCase() as OperationModel['method'],
         path: route,

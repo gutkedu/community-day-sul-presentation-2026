@@ -14,7 +14,7 @@ const sources = [
       <article class="ai-task">
         <span class="label">TAREFA</span>
         <h2>Alterar <code>CreateOrder</code></h2>
-        <p>O agente precisa se localizar antes de modificar o sistema.</p>
+        <p>O contrato muda junto com a implementação.</p>
       </article>
 
       <span class="ai-flow-arrow" :class="{ active: step >= 1 }" aria-hidden="true">→</span>
@@ -32,19 +32,19 @@ const sources = [
 
       <div class="ai-outcomes">
         <article class="ai-proposal" :class="{ focused: step === 2, passed: step > 2 }">
-          <span class="label">PROPOSTA</span>
+          <span class="label">NO DESENVOLVIMENTO</span>
           <h2>Código + contratos</h2>
-          <p>A implementação e sua documentação evoluem juntas.</p>
+          <p>A IA apoia a mudança; a equipe revisa.</p>
         </article>
         <span class="ai-down-arrow" :class="{ active: step >= 3 }" aria-hidden="true">↓</span>
         <article class="ai-validation" :class="{ focused: step === 3 }">
-          <span class="label">VALIDAÇÃO</span>
-          <h2>CI + revisão humana</h2>
-          <p>Testes, regras e efeitos continuam verificáveis.</p>
+          <span class="label">NO CI/CD</span>
+          <h2>Contratos × infraestrutura</h2>
+          <p>Script cruza OpenAPI e AsyncAPI com o SAM.</p>
         </article>
       </div>
     </div>
 
-    <p class="story-takeaway">Os YAMLs não garantem que a IA acerte; reduzem suposições e tornam o contexto verificável.</p>
+    <p class="story-takeaway">Documentação atualizada é parte da entrega, não uma tarefa para depois.</p>
   </section>
 </template>

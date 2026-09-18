@@ -6,9 +6,13 @@ summary: Captura e mantém pedidos.
 owners:
   - orders-team
 services:
-  - id: orders-service
+  - id: orders-create-order
+    version: 1.0.0
+  - id: orders-get-order-by-id
     version: 1.0.0
 sends:
+  - id: ReserveInventory
+    version: 1.0.0
   - id: OrderCreated
     version: 1.0.0
 receives: []

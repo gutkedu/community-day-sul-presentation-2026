@@ -2,9 +2,13 @@ id: inventory
 name: Inventory
 version: 1.0.0
 summary: Mantém a disponibilidade de itens para pedidos.
-service:
-  id: inventory-service
-  name: Inventory Service
-  version: 1.0.0
 owners:
   - inventory-team
+externalServices:
+  - id: inventory-stock-api
+    name: API de Estoque
+    version: 1.0.0
+    summary: API externa fictícia de reserva de estoque.
+    specification: stock-api.openapi.yaml
+    consumers:
+      - inventory-reserve-inventory

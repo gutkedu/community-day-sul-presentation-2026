@@ -1,0 +1,25 @@
+---
+id: inventory-stock-api
+name: API de Estoque
+version: 1.0.0
+summary: API externa fictícia de reserva de estoque.
+owners:
+  - inventory-team
+externalSystem: true
+receives:
+  - id: ReserveStock
+    version: 1.0.0
+specifications:
+  - type: openapi
+    path: openapi.yaml
+    name: OpenAPI 3.1 — API externa
+---
+<!-- Generated from architecture/. Do not edit manually. -->
+
+## Integração externa
+
+API de terceiro fictícia, fora da infraestrutura SAM. O time listado mantém a integração, não a implementação do provedor.
+
+Consumida por `inventory-reserve-inventory`. O consumidor recebe ReserveInventory via SQS e chama a API por HTTP usando ReserveStock.
+
+<NodeGraph />

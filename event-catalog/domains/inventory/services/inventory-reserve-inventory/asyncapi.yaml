@@ -1,0 +1,27 @@
+asyncapi: 3.0.0
+info:
+  title: Inventory Service Messages
+  version: 1.0.0
+  description: Commands consumidos pelo domínio Inventory.
+defaultContentType: application/json
+channels:
+  inventoryCommands:
+    address: inventory-commands
+    title: Inventory Commands
+    description: Fila de comandos de reserva de estoque.
+    x-protocol: sqs
+    x-architecture-resource:
+      logicalId: InventoryCommandsQueue
+    messages:
+      ReserveInventory:
+        $ref: '../orders/asyncapi.yaml#/components/messages/ReserveInventory'
+operations:
+  receiveReserveInventory:
+    action: receive
+    summary: Reserva estoque de forma idempotente para o pedido.
+    channel:
+      $ref: '#/channels/inventoryCommands'
+    messages:
+      - $ref: '#/channels/inventoryCommands/messages/ReserveInventory'
+    x-architecture-resource:
+      logicalId: ReserveInventoryFunction

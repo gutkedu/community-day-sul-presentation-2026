@@ -7,34 +7,82 @@ import { DECK_TITLE, SLIDE_COUNT } from '../lib/deck.ts'
 const markdown = readFileSync(new URL('../slides.md', import.meta.url), 'utf8')
 const source = JSON.parse(readFileSync(new URL('../docs/source-slides.json', import.meta.url), 'utf8'))
 
-test('a sequência aprovada preserva todos os IDs e reúne as introduções aos conceitos', () => {
+test('a sequência preserva os IDs da fonte e inclui promessa e conclusão autorais', () => {
   const entries = [...markdown.matchAll(/^sourceId: (.+)\n(?:mergedSourceIds: (.+)\n)?index: (\d+)/gm)]
   const ids = entries.flatMap(m => [m[1].trim(), ...(m[2] ? JSON.parse(m[2]) : [])])
   assert.equal(SLIDE_COUNT, 29)
-  assert.equal(entries.length, SLIDE_COUNT)
-  assert.deepEqual(entries.map(m => Number(m[3])), Array.from({ length: SLIDE_COUNT }, (_, i) => i + 1))
+  assert.equal(entries.length, SLIDE_COUNT - 2)
+  const indices = [...markdown.matchAll(/^index: (\d+)$/gm)].map(m => Number(m[1]))
+  assert.deepEqual(indices, Array.from({ length: SLIDE_COUNT }, (_, i) => i + 1))
+  assert.deepEqual(entries.map(m => Number(m[3])), indices.filter(index => ![7, 28].includes(index)))
+  assert.deepEqual([...markdown.matchAll(/^authored: true\nindex: (\d+)$/gm)].map(m => Number(m[1])), [7, 28])
   assert.deepEqual([...ids].sort(), source.map((s: { id: string }) => s.id).sort())
   assert.equal(new Set(ids).size, source.length)
   assert.deepEqual(entries.map(m => m[1]), [
     'p6', 'v5_about', 'v5_roadmap', 'v2s02', 'v2s04', 'slide_5',
-    'p18', 'v2s08', 'v2s09', 'v2s10', 'v2s12', 'v7_http_response_event',
+    'p18', 'v2s08', 'v2s09', 'v2s10',
     'v4s14', 'slide_7', 'spec_openapi_intro', 'v2s13', 'v2s14',
     'v2s15', 'v4s21', 'v2s16', 'eventcatalog_boyne_intro', 'v2s19', 'v4s26',
-    'v4s27', 'v6s30_catalog_flow',
-    'ai_architecture_context', 'v2s20', 'v2s21', 'v2s22',
+    'v6s30_catalog_flow', 'v4s27',
+    'v2s20', 'v2s21', 'ai_architecture_context', 'v2s22',
   ])
   assert.deepEqual(JSON.parse(entries[6][2]), ['p19', 'slide_6'])
-  assert.deepEqual(JSON.parse(entries[14][2]), ['spec_asyncapi_intro'])
-  assert.deepEqual(JSON.parse(entries[16][2]), ['v4s19'])
-  assert.deepEqual(JSON.parse(entries[17][2]), ['v4s17'])
-  assert.deepEqual(JSON.parse(entries[18][2]), ['slide_4'])
-  assert.deepEqual(JSON.parse(entries[21][2]), ['v4s24', 'v4s25'])
+  assert.deepEqual(JSON.parse(entries[10][2]), ['v2s12', 'v7_http_response_event'])
+  assert.deepEqual(JSON.parse(entries[12][2]), ['spec_asyncapi_intro'])
+  assert.deepEqual(JSON.parse(entries[14][2]), ['v4s19'])
+  assert.deepEqual(JSON.parse(entries[15][2]), ['v4s17'])
+  assert.deepEqual(JSON.parse(entries[16][2]), ['slide_4'])
+  assert.deepEqual(JSON.parse(entries[19][2]), ['v4s24', 'v4s25'])
 })
 
 test('o nome original da palestra foi preservado', () => {
   assert.equal(DECK_TITLE, 'De rotas HTTP a eventos: uma jornada prática para pensar EDA')
   assert.ok(markdown.includes(`title: "${DECK_TITLE}"`))
   assert.ok(!markdown.includes('title: Da intenção ao fato'))
+})
+
+test('a capa usa um fluxo técnico genérico sem repetir a mensagem no rodapé', () => {
+  const cover = readFileSync(new URL('../components/CoverScene.vue', import.meta.url), 'utf8')
+  assert.ok(cover.includes('Command chega a um serviço, que publica um Event para dois consumidores'))
+  assert.ok(cover.includes('<span class="label command">COMMAND</span><code>Solicitar mudança</code>'))
+  assert.ok(cover.includes('<span class="label">SERVIÇO</span><strong>Domínio</strong>'))
+  assert.ok(cover.includes('<span class="label event">EVENT</span><code>Fato ocorrido</code>'))
+  assert.ok(cover.includes('Consumidor A'))
+  assert.ok(cover.includes('Consumidor B'))
+  assert.ok(!cover.includes('CreateOrder'))
+  assert.ok(!cover.includes('OrderCreated'))
+  assert.ok(!cover.includes('SIGNIFICADO ANTES DO TRANSPORTE'))
+  assert.ok(!cover.includes('DE ROTAS HTTP A EVENTOS <b>'))
+})
+
+test('a abertura conta a experiência pessoal na Destrava Aí antes dos conceitos', () => {
+  assert.ok(markdown.includes('title: "Quando entrei na Destrava Aí, o sistema já estava em andamento"'))
+  assert.ok(markdown.includes('eyebrow: "CONTEXTO / MINHA CHEGADA"'))
+  assert.ok(markdown.includes('title: "O diagrama mostrava conexões, mas não o que elas significavam"'))
+  assert.ok(markdown.includes('eyebrow: "CONTEXTO / A LACUNA"'))
+  assert.ok(markdown.includes('title: "Eu precisava responder três perguntas"'))
+  assert.ok(markdown.includes('Quando entrei na Destrava Aí, a empresa estava migrando partes do sistema para uma arquitetura serverless e orientada a eventos na AWS.'))
+  assert.ok(markdown.includes('Já existiam vários domínios se comunicando, mas a documentação ainda era predominantemente estática.'))
+  assert.ok(markdown.includes('Essa lacuna me levou a aprofundar a documentação.'))
+
+  const scene = readFileSync(new URL('../components/OpeningContextScene.vue', import.meta.url), 'utf8')
+  assert.ok(scene.includes('MIGRAÇÃO SERVERLESS + EDA · AWS'))
+  assert.ok(scene.includes('DIAGRAMA ESTÁTICO'))
+  assert.ok(scene.includes('Múltiplos domínios já se comunicavam.'))
+  assert.ok(scene.includes('A conexão aparecia; o significado e as responsabilidades, não.'))
+})
+
+test('a promessa liga as três perguntas aos conceitos sem etapas intermediárias', () => {
+  const questions = markdown.indexOf('title: "Eu precisava responder três perguntas"')
+  const promise = markdown.indexOf('title: "Das dúvidas à arquitetura em evolução"')
+  const concepts = markdown.indexOf('title: "Três propósitos de uma interação"')
+  assert.ok(questions < promise && promise < concepts)
+  assert.ok(markdown.includes('authored: true\nindex: 7\nclicks: 0'))
+  assert.ok(markdown.includes('<PromiseScene :index="$frontmatter.index" />'))
+  const scene = readFileSync(new URL('../components/PromiseScene.vue', import.meta.url), 'utf8')
+  const heading = scene.match(/<h1>([\s\S]*?)<\/h1>/)?.[1].replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim()
+  assert.equal(heading, 'Vou mostrar como saí dessas dúvidas para uma documentação que nos ajudava a acompanhar a arquitetura enquanto o sistema evoluía.')
+  assert.ok(!scene.includes('v-click'))
 })
 
 test('OpenAPI e AsyncAPI são apresentados juntos antes dos YAMLs', () => {
@@ -79,16 +127,58 @@ test('os contratos usam a extensão curta x-kind', () => {
   assert.ok(contractScene.includes('x-kind: event'))
 })
 
-test('o recorte AsyncAPI explicita o EventBridge com uma extensão curta', () => {
+test('o recorte AsyncAPI mostra onde e o que circula sem operações visíveis', () => {
   const contractScene = readFileSync(new URL('../components/ContractScene.vue', import.meta.url), 'utf8')
+  assert.ok(contractScene.includes('address: inventory-commands'))
+  assert.ok(contractScene.includes('x-protocol: sqs'))
+  assert.ok(contractScene.includes('ReserveInventory'))
+  assert.ok(contractScene.includes('x-kind: command'))
   assert.ok(contractScene.includes('address: default'))
   assert.ok(contractScene.includes('x-protocol: eventbridge'))
+  assert.ok(contractScene.includes('OrderCreated'))
+  assert.ok(!contractScene.includes("['    action: send'"))
+  assert.ok(!contractScene.includes('class="direction-pair"'))
   assert.ok(!contractScene.includes('x-destrava-protocol'))
+})
+
+test('o evento segue o padrão domínio, evento e versão', () => {
+  const contractScene = readFileSync(new URL('../components/ContractScene.vue', import.meta.url), 'utf8')
+  assert.ok(contractScene.includes('name: orders.order-created.v1'))
+  assert.ok(!contractScene.includes('name: order.created.v1'))
+  assert.ok(markdown.includes('detail-type segue domínio.evento.versão.'))
+})
+
+test('o slide de convenções explora o envelope EventBridge compartilhado', () => {
+  assert.ok(markdown.includes('title: "Um evento carrega contexto e dados de negócio"'))
+  assert.ok(markdown.includes('index: 17\nclicks: 3'))
+  assert.ok(markdown.includes('<EventPayloadScene :step="$clicks" />'))
+
+  const payloadScene = readFileSync(new URL('../components/EventPayloadScene.vue', import.meta.url), 'utf8')
+  assert.ok(payloadScene.includes('"source": "orders"'))
+  assert.ok(payloadScene.includes('"detail-type": "orders.order-created.v1"'))
+  assert.ok(payloadScene.includes('"eventId": "evt-123"'))
+  assert.ok(payloadScene.includes('"eventVersion": 1'))
+  assert.ok(payloadScene.includes('"occurredAt": "2026-09-17T14:00:00Z"'))
+  assert.ok(payloadScene.includes('"correlationId": "corr-789"'))
+  assert.ok(payloadScene.includes('"orderId": "ord-123"'))
+  assert.ok(payloadScene.includes('"total": 129.90'))
+  assert.ok(payloadScene.includes('currentStep === 1'))
+  assert.ok(payloadScene.includes('currentStep === 2'))
+  assert.ok(payloadScene.includes('currentStep === 3'))
+})
+
+test('a mesma história conecta AWS, interfaces e catálogo', () => {
+  for (const file of ['AwsScene.vue', 'OrdersInterfacesScene.vue', 'CatalogFlowScene.vue']) {
+    const component = readFileSync(new URL(`../components/${file}`, import.meta.url), 'utf8')
+    assert.ok(component.includes('CreateOrder'), `${file} precisa mostrar CreateOrder`)
+    assert.ok(component.includes('ReserveInventory'), `${file} precisa mostrar ReserveInventory`)
+    assert.ok(component.includes('OrderCreated'), `${file} precisa mostrar OrderCreated`)
+  }
 })
 
 test('a síntese separa significado, mensagens e infraestrutura', () => {
   assert.ok(markdown.includes('title: "Cada arquivo responde uma parte"'))
-  assert.ok(markdown.includes('index: 19\nclicks: 0\ntransition: none'))
+  assert.ok(markdown.includes('index: 18\nclicks: 0\ntransition: none'))
   assert.ok(markdown.includes('Interface HTTP\\nQuery · Command'))
   assert.ok(markdown.includes('Mensagens e canais\\nCommand · Event'))
   assert.ok(markdown.includes('Infraestrutura serverless em YAML\\nLambda · EventBridge · SQS'))
@@ -97,8 +187,8 @@ test('a síntese separa significado, mensagens e infraestrutura', () => {
 
 test('o mapa mostra Notifications entregando e-mail pelo SES', () => {
   const awsScene = readFileSync(new URL('../components/AwsScene.vue', import.meta.url), 'utf8')
-  assert.ok(awsScene.includes('Notifications Lambda'))
-  assert.ok(awsScene.includes('Amazon SES'))
+  assert.ok(awsScene.includes('<strong>Notifications</strong>'))
+  assert.ok(awsScene.includes('<strong>SES</strong>'))
   assert.ok(awsScene.includes('notification-delivery'))
   assert.ok(awsScene.includes('src="/aws/ses.png"'))
   assert.ok(existsSync(resolve('public/aws/ses.png')))
@@ -107,12 +197,47 @@ test('o mapa mostra Notifications entregando e-mail pelo SES', () => {
 
 test('o mapa mostra Inventory integrando com uma API externa de estoque', () => {
   const awsScene = readFileSync(new URL('../components/AwsScene.vue', import.meta.url), 'utf8')
-  assert.ok(awsScene.includes('Inventory Lambda'))
+  assert.ok(awsScene.includes('<strong>Inventory</strong>'))
   assert.ok(awsScene.includes('API de Estoque'))
   assert.ok(awsScene.includes('inventory-integration'))
+  assert.ok(awsScene.includes('ReserveInventory'))
+  assert.ok(awsScene.includes('/transport/sqs.svg'))
+  assert.ok(awsScene.includes('/aws/eventbridge.png'))
+})
+
+test('o mapa agrupa serviços em caixas de domínio e mantém transportes por fora', () => {
+  const awsScene = readFileSync(new URL('../components/AwsScene.vue', import.meta.url), 'utf8')
+  const styles = readFileSync(new URL('../styles/full-deck.css', import.meta.url), 'utf8')
+  assert.ok(awsScene.includes('COMMAND · HTTP'))
+  assert.ok(awsScene.includes('COMMAND · SQS'))
+  assert.ok(awsScene.includes('EVENT · EVENTBRIDGE'))
+  assert.ok(awsScene.includes('class="aws-boundary orders-boundary"'))
+  assert.ok(awsScene.includes('class="aws-boundary inventory-boundary"'))
+  assert.ok(awsScene.includes('class="aws-boundary notifications-boundary"'))
+  assert.ok(awsScene.includes('class="aws-transport-layer"'))
+  assert.match(awsScene, /aws-transport-layer[\s\S]*queue-resource[\s\S]*bus-resource/)
+  assert.ok(styles.includes('.orders-boundary { left:120px; top:2px; width:355px; height:345px; }'))
+  assert.ok(styles.includes('.inventory-boundary { left:792px; top:3px; width:360px; height:157px; }'))
+  assert.ok(styles.includes('.notifications-boundary { left:792px; top:190px; width:360px; height:157px; }'))
+  assert.ok(!awsScene.includes('Orders Lambda'))
+  assert.ok(!awsScene.includes('Inventory Lambda'))
+  assert.ok(!awsScene.includes('Notifications Lambda'))
+  assert.ok(!awsScene.includes('inventory-commands'))
+  assert.ok(!awsScene.includes('event bus'))
+  assert.ok(!awsScene.includes('persistência'))
+  assert.ok(awsScene.includes('create-order-label" :class="{ visible: current === 1'))
+  assert.ok(awsScene.includes('reserve-inventory-label" :class="{ visible: current === 3'))
+  assert.ok(awsScene.includes('order-created-label" :class="{ visible: current === 4'))
+  assert.ok(!awsScene.includes('APÓS PERSISTIR'))
+  assert.ok(!awsScene.includes('class="aws-output-split"'))
+  assert.ok(!awsScene.includes('class="aws-caption"'))
 })
 
 test('a introdução do EventCatalog mostra o repositório público no GitHub', () => {
+  assert.ok(markdown.includes('title: "Do EDA Visuals ao EventCatalog"'))
+  assert.ok(markdown.includes('sourceId: eventcatalog_boyne_intro\nindex: 20\nclicks: 0'))
+  assert.ok(markdown.includes('Conheci seu trabalho no Serverless Land, pelo EDA Visuals.'))
+  assert.ok(markdown.includes('https://eda-visuals.boyney.io/'))
   assert.ok(markdown.includes('"projectImage": "/screenshots/eventcatalog-github.png"'))
   assert.ok(markdown.includes('"projectHref": "https://github.com/event-catalog/eventcatalog"'))
   assert.ok(markdown.includes('"projectLabel": "Repositório público · Open source"'))
@@ -128,14 +253,14 @@ test('a introdução do EventCatalog mostra o repositório público no GitHub', 
 test('a pipeline concentra o trabalho do gerador sem repetir outro slide', () => {
   assert.ok(markdown.includes('title: "Dos contratos ao catálogo"'))
   assert.ok(markdown.includes('mergedSourceIds: ["v4s24", "v4s25"]'))
-  assert.ok(markdown.includes('A caixa sai; o CodePipeline coleta os repositórios, e os scripts Python validam e geram os recursos.'))
+  assert.ok(markdown.includes('O CodePipeline coleta os repositórios; o gerador lê os YAMLs e cria os recursos.'))
   assert.ok(!markdown.includes('title: "O que o gerador faz"'))
 
   const pipeline = readFileSync(new URL('../components/PipelineScene.vue', import.meta.url), 'utf8')
   assert.ok(pipeline.includes('<carbon-logo-git'))
   assert.ok(pipeline.includes('Coletar repositórios'))
   assert.ok(pipeline.includes('<carbon-logo-python'))
-  assert.ok(pipeline.includes('Validar contratos · Gerar recursos'))
+  assert.ok(pipeline.includes('Lê os YAMLs · Cria os recursos'))
   assert.ok(pipeline.includes('<carbon-logo-npm'))
   assert.ok(pipeline.includes('@eventcatalog/core'))
   assert.ok(pipeline.includes('npm run build'))
@@ -146,27 +271,92 @@ test('a pipeline revela e recolhe o que extraímos antes do gerador', () => {
   assert.ok(pipeline.includes('class="pipeline-extraction"'))
   assert.ok(pipeline.includes(':class="{ visible: step === 1 }"'))
   assert.ok(pipeline.includes('Rota · operação · entrada · resposta'))
-  assert.ok(pipeline.includes('Mensagem · esquema · canal · envio / recebimento'))
+  assert.ok(pipeline.includes('Mensagem · esquema · canal · relações'))
   assert.ok(pipeline.includes('Lambda · EventBridge · SQS · DynamoDB'))
   assert.ok(!markdown.includes('title: "O que extraímos de cada arquivo"'))
   assert.ok(!markdown.includes('title: "Como mapeamos os arquivos para o EventCatalog"'))
 })
 
-test('a publicação segura separa falha e sucesso sem substituir um catálogo válido', () => {
+test('a publicação segue linearmente do build até o usuário', () => {
   const deploy = readFileSync(new URL('../components/DeployScene.vue', import.meta.url), 'utf8')
-  assert.ok(markdown.includes('title: "Publicação segura do catálogo"'))
-  assert.ok(deploy.includes('<carbon-logo-python'))
-  assert.ok(deploy.includes('Auditoria em Python'))
-  assert.ok(deploy.includes('Mantém o catálogo atual'))
+  assert.ok(markdown.includes('title: "Do build ao catálogo publicado"'))
+  assert.ok(deploy.includes('class="pipeline-stage deploy-pipeline-stage"'))
+  assert.ok(deploy.includes('01 / ARTEFATO'))
+  assert.ok(deploy.includes('02 / HOSPEDAGEM'))
+  assert.ok(deploy.includes('03 / DISTRIBUIÇÃO'))
+  assert.ok(deploy.includes('class="pipeline-arrow"'))
+  assert.ok(deploy.includes(':class="{ focused: current === 1 }"'))
+  assert.ok(deploy.includes(':class="{ focused: current === 2 }"'))
+  assert.ok(deploy.includes(':class="{ focused: current === 3 }"'))
+  assert.ok(deploy.includes('class="deploy-audience"'))
+  assert.ok(deploy.includes('dist/'))
   assert.ok(deploy.includes('S3 privado'))
   assert.ok(deploy.includes('CloudFront'))
-  assert.ok(deploy.includes('Basic Auth'))
-  assert.ok(markdown.includes('Um catálogo inválido nunca substitui a versão publicada.'))
+  assert.ok(deploy.includes('src="/aws/s3.svg"'))
+  assert.ok(deploy.includes('src="/aws/cloudfront.svg"'))
+  assert.ok(existsSync(resolve('public/aws/s3.svg')))
+  assert.ok(existsSync(resolve('public/aws/cloudfront.svg')))
+  assert.ok(deploy.includes('Usuário'))
+  assert.ok(!deploy.includes('deploy-node'))
+  assert.ok(!deploy.includes('Auditoria em Python'))
+  assert.ok(!deploy.includes('PASSOU?'))
 })
 
-test('os YAMLs dão contexto estruturado aos agentes sem substituir a validação', () => {
-  assert.ok(markdown.includes('title: "Os YAMLs também são contexto para a IA"'))
-  assert.ok(!markdown.includes('title: "Como a documentação ajuda no desenvolvimento com IA"'))
+test('a investigação percorre o mapa e o schema sem reutilizar relações antigas', () => {
+  assert.ok(!markdown.includes('sourceId: catalog_investigation'))
+  assert.ok(markdown.includes('title: "As relações ficam navegáveis"'))
+  assert.ok(markdown.includes('title: "Além do mapa, cada recurso tem contexto"'))
+  assert.ok(markdown.includes('sourceId: v6s30_catalog_flow\nindex: 23\nclicks: 2'))
+  assert.ok(markdown.includes('sourceId: v4s27\nindex: 24\nclicks: 1'))
+
+  const details = readFileSync(new URL('../components/CatalogScene.vue', import.meta.url), 'utf8')
+  assert.ok(!details.includes('/screenshots/eventcatalog-event-details.png'))
+  assert.ok(details.includes('/screenshots/eventcatalog-event-details-current.png'))
+  assert.ok(details.includes('visible: step === 0'))
+  assert.ok(details.includes('visible: step === 1'))
+  assert.ok(existsSync(resolve('public/screenshots/eventcatalog-event-details-current.png')))
+  assert.ok(!details.includes('Inventory + Notifications'))
+  assert.ok(details.includes('/screenshots/eventcatalog-event-schema.png'))
+  assert.ok(!details.includes('domain-integrations'))
+  assert.ok(!details.includes('catalog-answer'))
+  const styles = readFileSync(new URL('../styles/main.css', import.meta.url), 'utf8')
+  assert.ok(styles.includes('.catalog-resource-stage { display:grid; grid-template-columns:760px 1fr; grid-template-rows:minmax(0,1fr); gap:18px; height:374px; }'))
+  assert.ok(existsSync(resolve('public/screenshots/eventcatalog-event-schema.png')))
+})
+
+test('o fluxo do catálogo usa o visualizador real com serviços, dados e interações', () => {
+  const flow = readFileSync(new URL('../components/CatalogFlowScene.vue', import.meta.url), 'utf8')
+  assert.ok(flow.includes('/screenshots/eventcatalog-service-map.png'))
+  assert.ok(flow.includes('/screenshots/eventcatalog-service-map.webm'))
+  assert.ok(flow.includes('<video'))
+  assert.ok(flow.includes('autoplay'))
+  assert.ok(flow.includes('muted'))
+  assert.ok(flow.includes('playsinline'))
+  assert.ok(flow.includes('loop'))
+  assert.ok(flow.includes('Mapa real do EventCatalog'))
+  assert.ok(flow.includes('defineProps<{ step: number }>()'))
+  assert.ok(flow.includes(':data-step="current"'))
+  assert.ok(flow.includes('[data-step="1"] .catalog-map-media'))
+  assert.ok(flow.includes('[data-step="2"] .catalog-map-media'))
+  assert.ok(flow.includes('translate3d(18%, 0, 0) scale(1.45)'))
+  assert.ok(flow.includes('translate3d(-18%, 0, 0) scale(1.45)'))
+  assert.ok(markdown.includes('<CatalogFlowScene :step="$clicks" />'))
+  assert.ok(!flow.includes('catalog-graph-node'))
+  assert.ok(existsSync(resolve('public/screenshots/eventcatalog-service-map.png')))
+  assert.ok(existsSync(resolve('public/screenshots/eventcatalog-service-map.webm')))
+
+  const capture = readFileSync(new URL('../scripts/capture-eventcatalog-video.mjs', import.meta.url), 'utf8')
+  assert.ok(capture.includes('const FRAME_RATE = 25'))
+  assert.ok(capture.includes('const FRAME_COUNT = 75'))
+  assert.ok(capture.includes('page.screenshot'))
+  assert.ok(capture.includes("'-b:v', '8M'"))
+  assert.ok(!capture.includes('recordVideo'))
+})
+
+test('o exemplo de IA fecha a aplicação com documentação atualizada no desenvolvimento e no CI/CD', () => {
+  assert.ok(markdown.includes('title: "Benefícios para o desenvolvimento com IA"'))
+  assert.ok(markdown.includes('sourceId: ai_architecture_context\nindex: 27\nclicks: 3'))
+  assert.ok(markdown.includes('Os scripts verificam regras explícitas; a revisão humana continua necessária para avaliar o significado da mudança.'))
 
   const scene = readFileSync(new URL('../components/AiContextScene.vue', import.meta.url), 'utf8')
   assert.ok(scene.includes('Alterar <code>CreateOrder</code>'))
@@ -177,22 +367,31 @@ test('os YAMLs dão contexto estruturado aos agentes sem substituir a validaçã
   assert.ok(scene.includes('/brands/aws-sam-introduction.png'))
   assert.ok(scene.includes('Recursos · dependências AWS'))
   assert.ok(scene.includes('Código + contratos'))
-  assert.ok(scene.includes('CI + revisão humana'))
-  assert.ok(scene.includes('reduzem suposições'))
+  assert.ok(scene.includes('NO DESENVOLVIMENTO'))
+  assert.ok(scene.includes('A IA apoia a mudança; a equipe revisa.'))
+  assert.ok(scene.includes('NO CI/CD'))
+  assert.ok(scene.includes('Contratos × infraestrutura'))
+  assert.ok(scene.includes('Script cruza OpenAPI e AsyncAPI com o SAM.'))
+  assert.ok(markdown.includes('um script cruza OpenAPI e AsyncAPI com a infraestrutura declarada no SAM para verificar a conformidade entre eles.'))
+  assert.ok(!scene.includes('Validar contratos, gerar e publicar o catálogo.'))
+  assert.ok(scene.includes('Documentação atualizada é parte da entrega, não uma tarefa para depois.'))
+  assert.ok(scene.includes('step === 1'))
+  assert.ok(scene.includes('step === 2'))
+  assert.ok(scene.includes('step === 3'))
 })
 
 test('o resultado usa o painel real do catálogo fictício da palestra', () => {
   const scene = readFileSync(new URL('../components/OutcomeScene.vue', import.meta.url), 'utf8')
   assert.ok(scene.includes('/screenshots/eventcatalog-demo-dashboard.png'))
-  assert.ok(scene.includes('3 domínios · 3 serviços · 5 mensagens · 1 fluxo'))
-  assert.ok(scene.includes('Busca · navegação · visualização'))
+  assert.ok(scene.includes('Entender as relações entre os domínios'))
+  assert.ok(scene.includes('Acompanhar a arquitetura em evolução'))
   assert.ok(!scene.includes('class="related-nodes"'))
   assert.ok(existsSync(resolve('public/screenshots/eventcatalog-demo-dashboard.png')))
 })
 
 test('a recomendação final transforma especificações em documentação que evolui', () => {
   assert.ok(markdown.includes('title: "Faça a documentação evoluir com o projeto"'))
-  assert.ok(markdown.includes('index: 28\nclicks: 2'))
+  assert.ok(markdown.includes('sourceId: v2s21\nindex: 26\nclicks: 2'))
   assert.ok(markdown.includes('<DocumentationLifecycleScene :step="$clicks" />'))
 
   const scene = readFileSync(new URL('../components/DocumentationLifecycleScene.vue', import.meta.url), 'utf8')
@@ -203,6 +402,36 @@ test('a recomendação final transforma especificações em documentação que e
   assert.ok(scene.includes('Versionar e validar'))
   assert.ok(scene.includes('Gerar o EventCatalog'))
   assert.ok(scene.includes('passa a evoluir com ele'))
+})
+
+test('a conclusão retoma as três perguntas imediatamente antes do agradecimento', () => {
+  const titles = [...markdown.matchAll(/^title: "(.+)"$/gm)].map(m => m[1])
+  assert.deepEqual(titles.slice(-5), ['O ganho foi acompanhar a arquitetura em evolução', 'Faça a documentação evoluir com o projeto', 'Benefícios para o desenvolvimento com IA', 'Das dúvidas ao entendimento do sistema', 'Obrigado!'])
+  assert.ok(markdown.includes('authored: true\nindex: 28\nclicks: 0'))
+  assert.ok(markdown.includes('<ConclusionScene :index="$frontmatter.index" />'))
+  assert.ok(markdown.includes('No começo, eu precisava entender o significado das interações, as responsabilidades e onde esse conhecimento estava registrado. Os contratos tornaram isso explícito, e o catálogo tornou essas relações navegáveis. O ganho foi conseguir acompanhar a arquitetura enquanto ela evoluía.'))
+  const scene = readFileSync(new URL('../components/ConclusionScene.vue', import.meta.url), 'utf8')
+  for (const phrase of ['Significado', 'Responsabilidades', 'Registro', 'Conhecimento explícito.', 'Relações navegáveis.', 'Acompanhar a arquitetura', 'enquanto ela evoluía.']) assert.ok(scene.includes(phrase), phrase)
+  assert.ok(scene.includes('class="conclusion-gain"'))
+  assert.ok(scene.includes('<ol class="conclusion-journey"'))
+  assert.ok(scene.indexOf('class="conclusion-gain"') < scene.indexOf('class="conclusion-journey"'))
+  assert.ok(scene.includes('{{ SLIDE_COUNT }}'))
+  assert.ok(!scene.includes('v-click'))
+})
+
+test('o encerramento mostra agradecimento e QR codes do GitHub e EventCatalog', () => {
+  assert.ok(markdown.includes('title: "Obrigado!"'))
+  assert.ok(markdown.includes('scene: {"kind": "closing"}'))
+
+  const scene = readFileSync(new URL('../components/ClosingScene.vue', import.meta.url), 'utf8')
+  assert.ok(scene.includes('published-links.json'))
+  assert.ok(scene.includes('closing-qr'))
+  assert.ok(scene.includes(':href="link.url"'))
+  assert.ok(!scene.includes('closing-link-placeholder'))
+  assert.ok(!scene.includes('Comece por um fluxo'))
+  assert.ok(!scene.includes('linkedin.com/in/eduardogutkoski'))
+  assert.ok(scene.includes('<template v-if="kind === \'section\'">'))
+  assert.ok(scene.includes('<template v-else>'))
 })
 
 test('todos os slides têm notas e as mídias declaradas existem localmente', () => {

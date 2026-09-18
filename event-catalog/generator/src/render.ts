@@ -2,9 +2,10 @@ import { createHash } from 'node:crypto';
 import { cp, mkdtemp, mkdir, readFile, readdir, rename, rm, rmdir, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import eventCatalogSdk, { type Channel, type Command, type Domain, type Event, type Flow, type Query, type Service, type Team } from '@eventcatalog/sdk';
+import eventCatalogSdk, { type Channel, type Command, type Container, type Domain, type Event, type Flow, type Query, type Service, type Team } from '@eventcatalog/sdk';
 import type { CatalogModel, ServiceModel } from './model.js';
 import type { OperationModel } from './parse-openapi.js';
+import type { ExternalOperation } from './external-services.js';
 
 const generatedNotice = '<!-- Generated from architecture/. Do not edit manually. -->';
 const manifestName = '.eventcatalog-generated.json';
@@ -13,6 +14,7 @@ interface CatalogWriter {
   writeTeam(team: Team, options?: { override?: boolean }): Promise<void>;
   writeDomain(domain: Domain, options?: WriteOptions): Promise<void>;
   writeService(service: Service, options?: WriteOptions): Promise<void>;
+  writeDataStore(dataStore: Container, options?: WriteOptions): Promise<void>;
   addFileToService(id: string, file: { content: string; fileName: string }, version?: string): Promise<void>;
   writeCommand(command: Command, options?: WriteOptions): Promise<void>;
   writeQuery(query: Query, options?: WriteOptions): Promise<void>;
@@ -48,15 +50,15 @@ function serviceMessages(model: CatalogModel, serviceId: string, direction: 'sen
     }));
 }
 
-function awsTable(model: CatalogModel, service: ServiceModel): string {
-  const rows = model.awsResources
-    .filter((resource) => resource.domainId === service.domainId)
-    .map((resource) => `| \`${resource.logicalId}\` | \`${resource.type}\` | ${resource.references.map((item) => `\`${item}\``).join(', ') || '—'} |`)
-    .join('\n');
-  return `Os recursos abaixo são extraídos do [template AWS SAM](./template.yaml) e são apenas documentais nesta versão.\n\n| Logical ID | Tipo | Referências explícitas |\n|---|---|---|\n${rows}`;
+function serviceMarkdown(service: ServiceModel): string {
+  const relationships = [
+    service.readsFrom.length > 0 ? `Lê de ${service.readsFrom.map((id) => `\`${id}\``).join(', ')}.` : '',
+    service.writesTo.length > 0 ? `Escreve em ${service.writesTo.map((id) => `\`${id}\``).join(', ')}.` : '',
+  ].filter(Boolean).join(' ');
+  return markdown('Componente de serviço', `Lambda \`${service.logicalId}\` extraída do [AWS SAM](./template.yaml).${relationships ? `\n\n${relationships}` : ''}`);
 }
 
-function operationResource(operation: OperationModel): Command | Query {
+function operationResource(operation: OperationModel | ExternalOperation): Command | Query {
   const base = {
     id: operation.id,
     name: operation.name,
@@ -65,12 +67,14 @@ function operationResource(operation: OperationModel): Command | Query {
     owners: [`${operation.domainId}-team`],
     operation: { method: operation.method, path: operation.path, statusCodes: operation.statusCodes },
     schemaPath: operation.schema ? 'schema.json' : undefined,
-    markdown: markdown('Semântica', `${operation.kind === 'command' ? 'Command' : 'Query'} HTTP implementada conceitualmente por \`${operation.resourceLogicalId}\`.`),
+    markdown: markdown('Semântica', 'resourceLogicalId' in operation
+      ? `${operation.kind === 'command' ? 'Command' : 'Query'} HTTP implementada conceitualmente por \`${operation.resourceLogicalId}\`.`
+      : `${operation.kind === 'command' ? 'Command' : 'Query'} HTTP oferecida pela API externa \`${operation.serviceId}\`. Contrato fictício e documental, sem serviço implantado. Não é a mensagem recebida por SQS.`),
   };
   return base;
 }
 
-async function attachOperationAssets(stage: string, operation: OperationModel): Promise<void> {
+async function attachOperationAssets(stage: string, operation: OperationModel | ExternalOperation): Promise<void> {
   const sdk = createSdk(stage);
   if (operation.schema) {
     const schema = { schema: `${JSON.stringify(operation.schema, null, 2)}\n`, fileName: 'schema.json' };
@@ -101,7 +105,7 @@ async function renderStage(stage: string, model: CatalogModel): Promise<void> {
       version: domain.version,
       summary: domain.summary,
       owners: domain.owners,
-      services: [{ id: domain.service.id, version: domain.service.version }],
+      services: [...model.services, ...model.externalServices].filter((service) => service.domainId === domain.id).map((service) => ({ id: service.id, version: service.version })),
       sends: model.relationships.filter((item) => item.domainId === domain.id && item.direction === 'send').map((item) => ({ id: item.messageId, version: '1.0.0' })),
       receives: model.relationships.filter((item) => item.domainId === domain.id && item.direction === 'receive').map((item) => ({ id: item.messageId, version: '1.0.0' })),
       flows: domain.id === 'orders' ? [{ id: 'CreateOrderFlow', version: '1.0.0' }] : [],
@@ -111,32 +115,71 @@ async function renderStage(stage: string, model: CatalogModel): Promise<void> {
   }
 
   for (const service of model.services) {
+    const hasOpenApi = model.operations.some((operation) => operation.serviceId === service.id);
+    const hasAsyncApi = model.relationships.some((relationship) => relationship.serviceId === service.id);
     const serviceResource: Service = {
       id: service.id,
       name: service.name,
       version: service.version,
       summary: service.summary,
       owners: service.owners,
-      sends: serviceMessages(model, service.id, 'send'),
+      sends: [
+        ...serviceMessages(model, service.id, 'send'),
+        ...model.externalServices.filter(external => external.consumers.includes(service.id))
+          .flatMap(external => external.operations.map(operation => ({ id: operation.id, version: operation.version }))),
+      ],
       receives: [
         ...serviceMessages(model, service.id, 'receive'),
         ...model.operations.filter((operation) => operation.serviceId === service.id).map((operation) => ({ id: operation.id, version: operation.version })),
       ],
+      writesTo: service.writesTo.map((id) => ({ id, version: '1.0.0' })),
+      readsFrom: service.readsFrom.map((id) => ({ id, version: '1.0.0' })),
       specifications: [
-        { type: 'openapi', path: 'openapi.yaml', name: 'OpenAPI 3.1' },
-        { type: 'asyncapi', path: 'asyncapi.yaml', name: 'AsyncAPI 3.0' },
+        ...(hasOpenApi ? [{ type: 'openapi' as const, path: 'openapi.yaml', name: 'OpenAPI 3.1' }] : []),
+        ...(hasAsyncApi ? [{ type: 'asyncapi' as const, path: 'asyncapi.yaml', name: 'AsyncAPI 3.0' }] : []),
       ],
-      flows: service.id === 'orders-service' ? [{ id: 'CreateOrderFlow', version: '1.0.0' }] : [],
-      markdown: markdown('Recursos AWS', awsTable(model, service)),
+      flows: service.id === 'orders-create-order' ? [{ id: 'CreateOrderFlow', version: '1.0.0' }] : [],
+      markdown: serviceMarkdown(service),
     };
     const nestedSdk = createSdk(path.join(stage, 'domains', service.domainId));
     await nestedSdk.writeService(serviceResource, { path: service.id, override: true });
-    for (const contract of ['openapi.yaml', 'asyncapi.yaml', 'template.yaml'] as const) {
+    const contracts = [
+      ...(hasOpenApi ? ['openapi.yaml' as const] : []),
+      ...(hasAsyncApi ? ['asyncapi.yaml' as const] : []),
+      'template.yaml' as const,
+    ];
+    for (const contract of contracts) {
       await sdk.addFileToService(service.id, { content: await readFile(service.source.files[contract], 'utf8'), fileName: contract }, service.version);
     }
   }
 
-  for (const operation of model.operations) {
+  for (const external of model.externalServices) {
+    const nestedSdk = createSdk(path.join(stage, 'domains', external.domainId));
+    await nestedSdk.writeService({
+      id: external.id, name: external.name, version: external.version,
+      summary: external.summary, owners: external.owners, externalSystem: true,
+      receives: external.operations.map(operation => ({ id: operation.id, version: operation.version })),
+      specifications: [{ type: 'openapi', path: 'openapi.yaml', name: 'OpenAPI 3.1 — API externa' }],
+      markdown: markdown('Integração externa', `API de terceiro fictícia, fora da infraestrutura SAM. O time listado mantém a integração, não a implementação do provedor.\n\nConsumida por ${external.consumers.map(id => `\`${id}\``).join(', ')}. O consumidor recebe ReserveInventory via SQS e chama a API por HTTP usando ReserveStock.\n\n<NodeGraph />`),
+    }, { path: external.id, override: true });
+    await sdk.addFileToService(external.id, { content: await readFile(external.sourceFile, 'utf8'), fileName: 'openapi.yaml' }, external.version);
+  }
+
+  for (const dataStore of model.dataStores) {
+    await sdk.writeDataStore({
+      id: dataStore.id,
+      name: dataStore.name,
+      version: dataStore.version,
+      summary: dataStore.summary,
+      owners: [`${dataStore.domainId}-team`],
+      container_type: dataStore.containerType,
+      technology: dataStore.technology,
+      authoritative: true,
+      markdown: markdown('Infraestrutura', `Tabela \`${dataStore.logicalId}\` extraída do AWS SAM.`),
+    }, { path: dataStore.id, override: true });
+  }
+
+  for (const operation of [...model.operations, ...model.externalServices.flatMap(service => service.operations)]) {
     const resource = operationResource(operation);
     if (operation.kind === 'command') await sdk.writeCommand(resource as Command, { path: operation.id, override: true });
     else await sdk.writeQuery(resource as Query, { path: operation.id, override: true });
@@ -144,7 +187,7 @@ async function renderStage(stage: string, model: CatalogModel): Promise<void> {
   }
 
   for (const message of model.messages) {
-    const event: Event = {
+    const resource = {
       id: message.id,
       name: message.name,
       version: message.version,
@@ -152,12 +195,20 @@ async function renderStage(stage: string, model: CatalogModel): Promise<void> {
       owners: [`${message.producerDomainId}-team`],
       schemaPath: 'schema.json',
       channels: [{ id: message.channelId, version: '1.0.0' }],
-      markdown: markdown('Contrato no wire', `Nome do fato no EventBridge: \`${message.wireName}\`.\n\nProduzido por \`${message.producerServiceId}\` e consumido por ${model.relationships.filter((item) => item.messageId === message.id && item.direction === 'receive').map((item) => `\`${item.serviceId}\``).join(' e ')}.`),
+      markdown: markdown('Contrato no wire', `Nome da mensagem: \`${message.wireName}\`.\n\nProduzida por \`${message.producerServiceId}\` e consumida por ${model.relationships.filter((item) => item.messageId === message.id && item.direction === 'receive').map((item) => `\`${item.serviceId}\``).join(' e ')}.`),
       'x-wire-name': message.wireName,
     };
-    await sdk.writeEvent(event, { path: message.id, override: true });
-    await sdk.addSchemaToEvent(message.id, { schema: `${JSON.stringify(message.payload, null, 2)}\n`, fileName: 'schema.json' }, message.version);
-    if (message.example) await sdk.addExampleToEvent(message.id, { content: `${JSON.stringify(message.example, null, 2)}\n`, fileName: 'example.json' }, message.version);
+    const schema = { schema: `${JSON.stringify(message.payload, null, 2)}\n`, fileName: 'schema.json' };
+    const example = message.example ? { content: `${JSON.stringify(message.example, null, 2)}\n`, fileName: 'example.json' } : undefined;
+    if (message.kind === 'event') {
+      await sdk.writeEvent(resource as Event, { path: message.id, override: true });
+      await sdk.addSchemaToEvent(message.id, schema, message.version);
+      if (example) await sdk.addExampleToEvent(message.id, example, message.version);
+    } else {
+      await sdk.writeCommand(resource as Command, { path: message.id, override: true });
+      await sdk.addSchemaToCommand(message.id, schema, message.version);
+      if (example) await sdk.addExampleToCommand(message.id, example, message.version);
+    }
   }
 
   for (const channel of model.channels) {
@@ -169,8 +220,8 @@ async function renderStage(stage: string, model: CatalogModel): Promise<void> {
       address: channel.address,
       protocols: [channel.protocol],
       deliveryGuarantee: 'at-least-once',
-      owners: ['orders-team'],
-      markdown: markdown('Transporte', `EventBridge custom bus representado por \`${channel.resourceLogicalId}\`. Duplicatas são esperadas; consumidores devem ser idempotentes.`),
+      owners: [`${channel.resourceDomainId}-team`],
+      markdown: markdown('Transporte', `${channel.protocol === 'sqs' ? 'Fila SQS' : 'EventBridge custom bus'} representado por \`${channel.resourceLogicalId}\`. Duplicatas são esperadas; consumidores devem ser idempotentes.`),
       'x-aws-resource': `${channel.resourceDomainId}:${channel.resourceLogicalId}`,
     };
     await sdk.writeChannel(resource, { path: channel.id, override: true });
@@ -180,16 +231,23 @@ async function renderStage(stage: string, model: CatalogModel): Promise<void> {
     id: 'CreateOrderFlow',
     name: 'Create Order Flow',
     version: '1.0.0',
-    summary: 'Do aceite do comando à reação dos consumidores de OrderCreated.',
+    summary: 'Da criação do pedido aos comandos e eventos enviados para outros serviços.',
     owners: ['orders-team'],
     steps: [
-      { id: 'command', title: 'Create order', message: { id: 'CreateOrder', version: '1.0.0' }, next_step: 'accepted' },
-      { id: 'accepted', title: 'Pedido aceito?', custom: { title: 'Pedido aceito?', type: 'Decision', color: 'orange', summary: 'A relação causal vem de x-architecture-outcomes.' }, next_step: { id: 'event', label: 'sim' } },
-      { id: 'event', title: 'Order created', message: { id: 'OrderCreated', version: '1.0.0' }, next_steps: [{ id: 'inventory', label: 'reservar estoque' }, { id: 'notifications', label: 'preparar notificação' }] },
-      { id: 'inventory', title: 'Inventory Service', service: { id: 'inventory-service', version: '1.0.0' } },
-      { id: 'notifications', title: 'Notifications Service', service: { id: 'notifications-service', version: '1.0.0' } },
+      { id: 'command', title: 'Create order', message: { id: 'CreateOrder', version: '1.0.0' }, next_step: 'orders' },
+      { id: 'orders', title: 'Create Order', service: { id: 'orders-create-order', version: '1.0.0' }, next_steps: ['reserve-command', 'event'] },
+      { id: 'reserve-command', title: 'Reserve inventory', message: { id: 'ReserveInventory', version: '1.0.0' }, next_step: 'inventory' },
+      { id: 'inventory', title: 'Reserve Inventory', service: { id: 'inventory-reserve-inventory', version: '1.0.0' },
+        ...(model.externalServices.some(service => service.id === 'inventory-stock-api' && service.operations.some(operation => operation.id === 'ReserveStock'))
+          ? { next_step: 'reserve-stock' } : {}) },
+      ...model.externalServices.filter(service => service.id === 'inventory-stock-api' && service.operations.some(operation => operation.id === 'ReserveStock')).flatMap(service => [
+        { id: 'reserve-stock', title: 'Reserva via HTTP', message: { id: 'ReserveStock', version: service.version }, next_step: 'stock-api' },
+        { id: 'stock-api', title: service.name, service: { id: service.id, version: service.version } },
+      ]),
+      { id: 'event', title: 'Order created', message: { id: 'OrderCreated', version: '1.0.0' }, next_step: 'notifications' },
+      { id: 'notifications', title: 'Order Created Consumer', service: { id: 'notifications-order-created-consumer', version: '1.0.0' } },
     ],
-    markdown: markdown('Origem', 'Fluxo derivado do outcome explícito de `CreateOrder` e das operações AsyncAPI que recebem `OrderCreated`.'),
+    markdown: markdown('Origem', 'Fluxo derivado das operações OpenAPI e AsyncAPI, sem decisões artificiais.'),
   };
   await sdk.writeFlow(flow, { path: 'CreateOrderFlow', override: true });
 }
@@ -208,7 +266,10 @@ async function listFiles(root: string): Promise<string[]> {
 }
 
 async function sourceHashes(catalogRoot: string, model: CatalogModel): Promise<Record<string, string>> {
-  const files = [...new Set(model.domains.flatMap((domain) => Object.values(domain.source.files)))].sort();
+  const files = [...new Set([
+    ...model.domains.flatMap((domain) => Object.values(domain.source.files)),
+    ...model.externalServices.map(service => service.sourceFile),
+  ])].sort();
   const hashes: Record<string, string> = {};
   for (const file of files) {
     hashes[path.relative(catalogRoot, file).split(path.sep).join('/')] = createHash('sha256').update(await readFile(file)).digest('hex');

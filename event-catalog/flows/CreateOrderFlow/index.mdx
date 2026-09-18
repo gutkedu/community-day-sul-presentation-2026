@@ -2,7 +2,7 @@
 id: CreateOrderFlow
 name: Create Order Flow
 version: 1.0.0
-summary: Do aceite do comando à reação dos consumidores de OrderCreated.
+summary: Da criação do pedido aos comandos e eventos enviados para outros serviços.
 owners:
   - orders-team
 steps:
@@ -11,40 +11,52 @@ steps:
     message:
       id: CreateOrder
       version: 1.0.0
-    next_step: accepted
-  - id: accepted
-    title: Pedido aceito?
-    custom:
-      title: Pedido aceito?
-      type: Decision
-      color: orange
-      summary: A relação causal vem de x-architecture-outcomes.
-    next_step:
-      id: event
-      label: sim
+    next_step: orders
+  - id: orders
+    title: Create Order
+    service:
+      id: orders-create-order
+      version: 1.0.0
+    next_steps:
+      - reserve-command
+      - event
+  - id: reserve-command
+    title: Reserve inventory
+    message:
+      id: ReserveInventory
+      version: 1.0.0
+    next_step: inventory
+  - id: inventory
+    title: Reserve Inventory
+    service:
+      id: inventory-reserve-inventory
+      version: 1.0.0
+    next_step: reserve-stock
+  - id: reserve-stock
+    title: Reserva via HTTP
+    message:
+      id: ReserveStock
+      version: 1.0.0
+    next_step: stock-api
+  - id: stock-api
+    title: API de Estoque
+    service:
+      id: inventory-stock-api
+      version: 1.0.0
   - id: event
     title: Order created
     message:
       id: OrderCreated
       version: 1.0.0
-    next_steps:
-      - id: inventory
-        label: reservar estoque
-      - id: notifications
-        label: preparar notificação
-  - id: inventory
-    title: Inventory Service
-    service:
-      id: inventory-service
-      version: 1.0.0
+    next_step: notifications
   - id: notifications
-    title: Notifications Service
+    title: Order Created Consumer
     service:
-      id: notifications-service
+      id: notifications-order-created-consumer
       version: 1.0.0
 ---
 <!-- Generated from architecture/. Do not edit manually. -->
 
 ## Origem
 
-Fluxo derivado do outcome explícito de `CreateOrder` e das operações AsyncAPI que recebem `OrderCreated`.
+Fluxo derivado das operações OpenAPI e AsyncAPI, sem decisões artificiais.

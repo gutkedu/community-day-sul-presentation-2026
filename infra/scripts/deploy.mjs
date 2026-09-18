@@ -147,6 +147,15 @@ async function main() {
     'cloudformation', 'get-template', '--stack-name', config['stack-name'], '--template-stage', 'Original',
   ]).TemplateBody
   const remoteTemplate = typeof remote === 'string' ? parse(remote) : remote
+  // SAM adds resource identity metadata while packaging the original template.
+  // Ignore only that exact generated marker, never other metadata or properties.
+  for (const [logicalId, resource] of Object.entries(remoteTemplate?.Resources || {})) {
+    if (resource.Metadata?.SamResourceId === logicalId
+      && !Object.hasOwn(localTemplate.Resources?.[logicalId]?.Metadata || {}, 'SamResourceId')) {
+      delete resource.Metadata.SamResourceId
+      if (Object.keys(resource.Metadata).length === 0) delete resource.Metadata
+    }
+  }
   if (!isDeepStrictEqual(localTemplate, remoteTemplate)) {
     throw new Error('O template implantado difere do local (implantação cancelada ou infraestrutura desatualizada). Execute deploy-infra.sh; nenhum conteúdo foi enviado.')
   }

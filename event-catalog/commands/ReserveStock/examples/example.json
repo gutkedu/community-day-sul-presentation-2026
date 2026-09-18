@@ -1,0 +1,9 @@
+{
+  "orderId": "order-123",
+  "items": [
+    {
+      "sku": "SKU-001",
+      "quantity": 2
+    }
+  ]
+}

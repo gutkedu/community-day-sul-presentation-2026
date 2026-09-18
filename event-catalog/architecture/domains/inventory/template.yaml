@@ -1,9 +1,6 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
 Description: Recursos documentais do domínio Inventory; não destinados a deploy nesta demonstração.
-Parameters:
-  ApplicationEventBusArn:
-    Type: String
 Resources:
   InventoryApi:
     Type: AWS::Serverless::Api
@@ -17,6 +14,10 @@ Resources:
       Runtime: nodejs22.x
       Handler: not-implemented.handler
       CodeUri: not-implemented/
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName:
+              Ref: InventoryTable
       Events:
         GetInventoryBySku:
           Type: Api
@@ -25,7 +26,19 @@ Resources:
               Ref: InventoryApi
             Path: /inventory/{sku}
             Method: get
-  OrderCreatedConsumerFunction:
+  InventoryCommandsDeadLetterQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      MessageRetentionPeriod: 1209600
+  InventoryCommandsQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      VisibilityTimeout: 90
+      RedrivePolicy:
+        deadLetterTargetArn:
+          Fn::GetAtt: [InventoryCommandsDeadLetterQueue, Arn]
+        maxReceiveCount: 5
+  ReserveInventoryFunction:
     Type: AWS::Serverless::Function
     Metadata:
       DocumentationOnly: true
@@ -33,21 +46,20 @@ Resources:
       Runtime: nodejs22.x
       Handler: not-implemented.handler
       CodeUri: not-implemented/
-  OrderCreatedRule:
-    Type: AWS::Events::Rule
-    Properties:
-      EventBusName:
-        Ref: ApplicationEventBusArn
-      EventPattern:
-        source:
-          - com.communityday.orders
-        detail-type:
-          - order.created.v1
-      Targets:
-        - Arn:
-            Fn::GetAtt: [OrderCreatedConsumerFunction, Arn]
-          Id: InventoryOrderCreatedConsumer
-      State: ENABLED
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName:
+              Ref: InventoryTable
+        - SQSPollerPolicy:
+            QueueName:
+              Fn::GetAtt: [InventoryCommandsQueue, QueueName]
+      Events:
+        InventoryCommands:
+          Type: SQS
+          Properties:
+            Queue:
+              Fn::GetAtt: [InventoryCommandsQueue, Arn]
+            BatchSize: 10
   InventoryTable:
     Type: AWS::DynamoDB::Table
     DeletionPolicy: Retain
@@ -62,12 +74,3 @@ Resources:
           KeyType: HASH
       SSESpecification:
         SSEEnabled: true
-  AllowEventBridgeInvoke:
-    Type: AWS::Lambda::Permission
-    Properties:
-      Action: lambda:InvokeFunction
-      FunctionName:
-        Ref: OrderCreatedConsumerFunction
-      Principal: events.amazonaws.com
-      SourceArn:
-        Fn::GetAtt: [OrderCreatedRule, Arn]

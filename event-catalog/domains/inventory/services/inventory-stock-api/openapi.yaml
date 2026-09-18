@@ -1,0 +1,55 @@
+openapi: 3.1.0
+info:
+  title: API de Estoque
+  version: 1.0.0
+  description: Contrato fictício de um provedor externo. Nenhum endpoint ou backend é implantado por este exemplo.
+servers:
+  - url: https://stock.example.invalid
+    description: Endereço documental, não operacional.
+paths:
+  /reservations:
+    post:
+      operationId: ReserveStock
+      summary: Solicita a reserva ao provedor externo de estoque.
+      description: Inventory recebe ReserveInventory por SQS e realiza esta chamada HTTP. orderId identifica a reserva para tratamento idempotente de novas tentativas.
+      x-kind: command
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [orderId, items]
+              properties:
+                orderId:
+                  type: string
+                  minLength: 1
+                items:
+                  type: array
+                  minItems: 1
+                  items:
+                    type: object
+                    additionalProperties: false
+                    required: [sku, quantity]
+                    properties:
+                      sku:
+                        type: string
+                        minLength: 1
+                      quantity:
+                        type: integer
+                        minimum: 1
+            example:
+              orderId: order-123
+              items:
+                - sku: SKU-001
+                  quantity: 2
+      responses:
+        '201':
+          description: Reserva criada no provedor.
+        '200':
+          description: Reserva idempotente já existente para o pedido.
+        '409':
+          description: Estoque insuficiente ou pedido com uma reserva incompatível.
+        '503':
+          description: Provedor temporariamente indisponível.

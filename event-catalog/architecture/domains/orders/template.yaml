@@ -1,6 +1,9 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
 Description: Recursos documentais do domínio Orders; não destinados a deploy nesta demonstração.
+Parameters:
+  InventoryCommandsQueueName:
+    Type: String
 Resources:
   OrdersApi:
     Type: AWS::Serverless::Api
@@ -14,6 +17,10 @@ Resources:
       Runtime: nodejs22.x
       Handler: not-implemented.handler
       CodeUri: not-implemented/
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName:
+              Ref: OrdersTable
       Events:
         GetOrderById:
           Type: Api
@@ -31,6 +38,12 @@ Resources:
       Handler: not-implemented.handler
       CodeUri: not-implemented/
       Policies:
+        - DynamoDBCrudPolicy:
+            TableName:
+              Ref: OrdersTable
+        - SQSSendMessagePolicy:
+            QueueName:
+              Ref: InventoryCommandsQueueName
         - EventBridgePutEventsPolicy:
             EventBusName:
               Ref: ApplicationEventBus

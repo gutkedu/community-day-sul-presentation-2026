@@ -1,0 +1,83 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Recursos documentais do domínio Orders; não destinados a deploy nesta demonstração.
+Parameters:
+  InventoryCommandsQueueName:
+    Type: String
+Resources:
+  OrdersApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: demo
+  GetOrderByIdFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      DocumentationOnly: true
+    Properties:
+      Runtime: nodejs22.x
+      Handler: not-implemented.handler
+      CodeUri: not-implemented/
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName:
+              Ref: OrdersTable
+      Events:
+        GetOrderById:
+          Type: Api
+          Properties:
+            RestApiId:
+              Ref: OrdersApi
+            Path: /orders/{orderId}
+            Method: get
+  CreateOrderFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      DocumentationOnly: true
+    Properties:
+      Runtime: nodejs22.x
+      Handler: not-implemented.handler
+      CodeUri: not-implemented/
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName:
+              Ref: OrdersTable
+        - SQSSendMessagePolicy:
+            QueueName:
+              Ref: InventoryCommandsQueueName
+        - EventBridgePutEventsPolicy:
+            EventBusName:
+              Ref: ApplicationEventBus
+      Events:
+        CreateOrder:
+          Type: Api
+          Properties:
+            RestApiId:
+              Ref: OrdersApi
+            Path: /orders
+            Method: post
+  OrdersTable:
+    Type: AWS::DynamoDB::Table
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: orderId
+          AttributeType: S
+      KeySchema:
+        - AttributeName: orderId
+          KeyType: HASH
+      SSESpecification:
+        SSEEnabled: true
+  ApplicationEventBus:
+    Type: AWS::Events::EventBus
+    Properties:
+      Name:
+        Fn::Sub: '${AWS::StackName}-application-events'
+Outputs:
+  OrdersApiId:
+    Value:
+      Ref: OrdersApi
+  ApplicationEventBusArn:
+    Value:
+      Fn::GetAtt: [ApplicationEventBus, Arn]

@@ -1,20 +1,41 @@
 asyncapi: 3.0.0
 info:
-  title: Orders Service Events
+  title: Orders Service Messages
   version: 1.0.0
-  description: Contrato canônico dos eventos publicados por Orders.
+  description: Commands e eventos publicados pelo domínio Orders.
 defaultContentType: application/json
 channels:
+  inventoryCommands:
+    address: inventory-commands
+    title: Inventory Commands
+    description: Fila de comandos processados pelo domínio Inventory.
+    x-protocol: sqs
+    x-architecture-resource:
+      domain: inventory
+      logicalId: InventoryCommandsQueue
+    messages:
+      ReserveInventory:
+        $ref: '#/components/messages/ReserveInventory'
   applicationEvents:
     address: application-events
     title: Application Events
     description: EventBridge bus compartilhado entre os domínios.
+    x-protocol: eventbridge
     x-architecture-resource:
       logicalId: ApplicationEventBus
     messages:
       OrderCreated:
         $ref: '#/components/messages/OrderCreated'
 operations:
+  sendReserveInventory:
+    action: send
+    summary: Solicita a reserva dos itens do pedido.
+    channel:
+      $ref: '#/channels/inventoryCommands'
+    messages:
+      - $ref: '#/channels/inventoryCommands/messages/ReserveInventory'
+    x-architecture-resource:
+      logicalId: CreateOrderFunction
   publishOrderCreated:
     action: send
     summary: Publica o evento depois que CreateOrder aceita o pedido.
@@ -26,12 +47,27 @@ operations:
       logicalId: CreateOrderFunction
 components:
   messages:
+    ReserveInventory:
+      name: ReserveInventory
+      title: Reserve Inventory
+      summary: Solicitação para reservar os itens de um pedido.
+      x-kind: command
+      x-wire-name: inventory.reserve.v1
+      payload:
+        $ref: '#/components/schemas/ReserveInventoryPayload'
+      examples:
+        - name: Reserva de estoque
+          payload:
+            orderId: 6c47d4e8-0e2b-4a46-899e-2f3da4c155a9
+            items:
+              - sku: COMMUNITY-DAY-TICKET
+                quantity: 1
     OrderCreated:
       name: OrderCreated
       title: Order Created
       summary: Fato emitido quando um pedido foi aceito.
       x-kind: event
-      x-wire-name: order.created.v1
+      x-wire-name: orders.order-created.v1
       payload:
         $ref: '#/components/schemas/OrderCreatedPayload'
       examples:
@@ -50,6 +86,27 @@ components:
                 - sku: COMMUNITY-DAY-TICKET
                   quantity: 1
   schemas:
+    ReserveInventoryPayload:
+      type: object
+      additionalProperties: false
+      required: [orderId, items]
+      properties:
+        orderId:
+          type: string
+          format: uuid
+        items:
+          type: array
+          minItems: 1
+          items:
+            type: object
+            additionalProperties: false
+            required: [sku, quantity]
+            properties:
+              sku:
+                type: string
+              quantity:
+                type: integer
+                minimum: 1
     OrderCreatedPayload:
       type: object
       additionalProperties: false

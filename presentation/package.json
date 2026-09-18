@@ -8,6 +8,7 @@
   },
   "scripts": {
     "dev": "node scripts/dev.mjs",
+    "generate:qrcodes": "node scripts/generate-qrcodes.mjs",
     "build": "slidev build --base /",
     "preview": "vite preview",
     "test": "node --test tests/*.test.ts",
@@ -21,7 +22,10 @@
     "vue": "3.5.42"
   },
   "devDependencies": {
+    "jsqr": "1.4.0",
     "playwright-chromium": "1.63.0",
+    "pngjs": "7.0.0",
+    "qrcode": "1.5.4",
     "typescript": "6.0.3",
     "vite": "8.2.2"
   },

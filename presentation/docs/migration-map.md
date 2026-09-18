@@ -1,41 +1,35 @@
 # Mapeamento da migração
 
-Revisão de 14/09/2026: 35 slides. Título e todos os 37 IDs da fonte preservados. Os originais 8–10 foram reunidos no slide 7. Os blocos foram reorganizados para ligar problema, conceitos, contratos e infraestrutura; a tabela registra a sequência ativa.
+Revisão de 18/09/2026: 29 slides. O slide 7 explicita a promessa da palestra entre as três perguntas e os conceitos. O slide 28 conclui retomando as dúvidas iniciais, o papel dos contratos e do catálogo e o ganho de acompanhar a arquitetura em evolução; o agradecimento passa ao slide 29. Os dois slides autorais (`authored: true`) não têm cliques; título e todos os 37 IDs da fonte continuam preservados. A tabela registra a sequência ativa.
 
-| Slide atual | IDs Google Slides | Título | Etapas adicionais |
+| Slide atual | IDs de origem / novos IDs locais | Título | Etapas adicionais |
 |---|---|---|---|
 | 1 | `p6` | De rotas HTTP a eventos: uma jornada prática para pensar EDA | 0 |
 | 2 | `v5_about` | Sobre mim | 0 |
 | 3 | `v5_roadmap` | Agenda | 0 |
-| 4 | `v2s02` | O sistema já estava em andamento. | 0 |
-| 5 | `v2s04` | O que essa conexão significa? | 0 |
-| 6 | `slide_5` | Três perguntas para entender uma interação | 0 |
-| 7 | `p18`, `p19`, `slide_6` | Pergunta, intenção e fato têm propósitos diferentes | 0 (loop de 9 s) |
-| 8 | `v2s08` | Query busca informação | 0 (loop de 9 s) |
-| 9 | `v2s09` | Command solicita uma mudança | 0 (loop de 9 s) |
-| 10 | `v2s10` | Event comunica um fato | 0 (loop de 9 s) |
-| 11 | `v2s12` | Semântica não é transporte | 3 |
-| 12 | `v7_http_response_event` | Quem publica e quem reage têm responsabilidades | 0 (loop de 9 s) |
-| 13 | `v4s14` | Registrar operações, mensagens e responsabilidades | 3 |
-| 14 | `slide_7` | Orders expõe duas interfaces | 2 |
-| 15 | `spec_openapi_intro` | OpenAPI: especificação para APIs HTTP | 0 |
-| 16 | `v2s13` | As rotas de Orders no OpenAPI | 3 |
-| 17 | `spec_asyncapi_intro` | AsyncAPI: especificação para APIs com mensagens | 0 |
-| 18 | `v2s14` | O envio de OrderCreated no AsyncAPI | 3 |
-| 19 | `v4s19` | O produtor envia; os consumidores recebem | 2 |
-| 20 | `v4s17` | Agora conseguimos responder sobre Orders | 0 |
-| 21 | `v2s15` | Nomes consistentes permitem ligar os contratos | 0 |
-| 22 | `slide_4` | Essas interfaces rodam sobre a AWS | 4 |
-| 23 | `v4s21` | Contratos e infraestrutura completam a visão | 3 |
-| 24 | `v2s16` | Como apliquei isso no trabalho | 0 |
-| 25 | `eventcatalog_boyne_intro` | Encontrei o EventCatalog | 0 |
-| 26 | `v2s19` | Como geramos o EventCatalog na pipeline | 3 |
-| 27 | `v4s24` | O que extraímos de cada arquivo | 3 |
-| 28 | `v4s25` | O que o gerador faz | 4 |
-| 29 | `v4s26` | Como mapeamos os arquivos para o EventCatalog | 0 |
-| 30 | `v4s27` | Quem publica e quem consome OrderCreated | 2 |
-| 31 | `v6s30_catalog_flow` | A criação de um pedido no EventCatalog | 2 |
-| 32 | `ai_architecture_context` | Como a documentação ajuda no desenvolvimento com IA | 3 |
-| 33 | `v2s20` | A equipe passou a entender melhor o sistema | 2 |
-| 34 | `v2s21` | Por onde começar no seu sistema | 5 |
-| 35 | `v2s22` | Comece por um fluxo do seu sistema | 0 |
+| 4 | `v2s02` | Quando entrei na Destrava Aí, o sistema já estava em andamento | 0 |
+| 5 | `v2s04` | O diagrama mostrava conexões, mas não o que elas significavam | 0 |
+| 6 | `slide_5` | Eu precisava responder três perguntas | 0 |
+| 7 | Autoral (`authored: true`) | Das dúvidas à arquitetura em evolução | 0 |
+| 8 | `p18`, `p19`, `slide_6` | Três propósitos de uma interação | 0 |
+| 9 | `v2s08` | Query busca informação | 0 (loop de 9 s) |
+| 10 | `v2s09` | Command solicita uma mudança | 0 (loop de 9 s) |
+| 11 | `v2s10` | Event comunica um fato | 0 (loop de 9 s) |
+| 12 | `v4s14`, `v2s12`, `v7_http_response_event` | O sistema de pedidos na AWS | 4 |
+| 13 | `slide_7` | Orders expõe operações e mensagens | 2 |
+| 14 | `spec_openapi_intro`, `spec_asyncapi_intro` | Duas especificações, dois tipos de interface | 2 |
+| 15 | `v2s13` | As rotas de Orders no OpenAPI | 3 |
+| 16 | `v2s14`, `v4s19` | Command e Event no AsyncAPI | 2 |
+| 17 | `v2s15`, `v4s17` | Um evento carrega contexto e dados de negócio | 3 |
+| 18 | `v4s21`, `slide_4` | Cada arquivo responde uma parte | 0 |
+| 19 | `v2s16` | Como apliquei isso no trabalho | 0 |
+| 20 | `eventcatalog_boyne_intro` | Do EDA Visuals ao EventCatalog | 0 |
+| 21 | `v2s19`, `v4s24`, `v4s25` | Dos contratos ao catálogo | 3 |
+| 22 | `v4s26` | Do build ao catálogo publicado | 3 |
+| 23 | `v6s30_catalog_flow` | As relações ficam navegáveis | 2 |
+| 24 | `v4s27` | Além do mapa, cada recurso tem contexto | 1 |
+| 25 | `v2s20` | O ganho foi acompanhar a arquitetura em evolução | 2 |
+| 26 | `v2s21` | Faça a documentação evoluir com o projeto | 2 |
+| 27 | `ai_architecture_context` | Benefícios para o desenvolvimento com IA | 3 |
+| 28 | Autoral (`authored: true`) | Das dúvidas ao entendimento do sistema | 0 |
+| 29 | `v2s22` | Obrigado! | 0 |

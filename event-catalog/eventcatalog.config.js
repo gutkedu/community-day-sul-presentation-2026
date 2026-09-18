@@ -24,6 +24,15 @@ export default {
   // read more at https://eventcatalog.dev/docs/development/customization/customize-sidebars/documentation-sidebar
   navigation: {
     pages: ['list:all'],
+    groups: [
+      { id: 'main', items: [{ id: 'home' }, { id: 'docs' }] },
+      { id: 'architecture', label: 'Arquitetura', items: [
+        { id: 'domain-map', label: 'Mapa dos domínios', icon: 'Network', href: '/visualiser/domain-integrations' },
+      ] },
+      { id: 'browse', label: 'Browse', items: [{ id: 'catalog' }, { id: 'schemas' }, { id: 'schema-insights' }] },
+      { id: 'organization', label: 'Organization', items: [{ id: 'teams' }, { id: 'users' }] },
+      { id: 'settings', position: 'bottom', items: [{ id: 'settings' }] },
+    ],
   },
   // Customize the logo, add your logo to public/ folder
   logo: {

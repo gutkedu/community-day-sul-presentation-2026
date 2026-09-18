@@ -1,0 +1,28 @@
+---
+id: inventory-get-inventory-by-sku
+name: Get Inventory By Sku
+version: 1.0.0
+summary: Lambda GetInventoryBySkuFunction do domínio inventory.
+owners:
+  - inventory-team
+sends: []
+receives:
+  - id: GetInventoryBySku
+    version: 1.0.0
+writesTo: []
+readsFrom:
+  - id: inventory-table
+    version: 1.0.0
+specifications:
+  - type: openapi
+    path: openapi.yaml
+    name: OpenAPI 3.1
+flows: []
+---
+<!-- Generated from architecture/. Do not edit manually. -->
+
+## Componente de serviço
+
+Lambda `GetInventoryBySkuFunction` extraída do [AWS SAM](./template.yaml).
+
+Lê de `inventory-table`.

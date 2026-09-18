@@ -11,22 +11,42 @@ function assertUnique<T>(items: T[], key: (item: T) => string, label: string): v
 
 export function validateModel(model: CatalogModel): CatalogModel {
   assertUnique(model.domains, (domain) => domain.id, 'domain');
-  assertUnique(model.services, (service) => service.id, 'service');
-  assertUnique(model.operations, (operation) => operation.id, 'operationId');
+  assertUnique([...model.services, ...model.externalServices], (service) => service.id, 'service');
+  const allOperations = [...model.operations, ...model.externalServices.flatMap(service => service.operations)];
+  assertUnique(allOperations, (operation) => operation.id, 'operationId');
+  assertUnique([...allOperations, ...model.messages], (message) => message.id, 'message id');
   assertUnique(model.messages, (message) => message.id, 'message.name');
   assertUnique(model.channels, (channel) => channel.id, 'channel');
+  assertUnique(model.dataStores, (dataStore) => dataStore.id, 'data store');
 
   const domains = new Set(model.domains.map((domain) => domain.id));
   const services = new Set(model.services.map((service) => service.id));
   const messages = new Map(model.messages.map((message) => [message.id, message]));
   const channels = new Set(model.channels.map((channel) => channel.id));
+  const dataStores = new Set(model.dataStores.map((dataStore) => dataStore.id));
   const resources = new Set(model.awsResources.map((resource) => `${resource.domainId}:${resource.logicalId}`));
 
+  for (const external of model.externalServices) {
+    if (!domains.has(external.domainId)) throw new Error(`${external.sourceFile}: unknown domain ${external.domainId}`);
+    assertUnique(external.consumers, id => id, 'external consumer');
+    for (const consumer of external.consumers) {
+      if (!services.has(consumer)) throw new Error(`${external.sourceFile}: unknown consumer ${consumer}`);
+    }
+  }
+
+  for (const service of model.services) {
+    if (!domains.has(service.domainId)) throw new Error(`${service.sourceFile}: service ${service.id} references unknown domain ${service.domainId}`);
+    if (!resources.has(`${service.domainId}:${service.logicalId}`)) throw new Error(`${service.sourceFile}: service ${service.id} references missing SAM resource ${service.logicalId}`);
+    for (const dataStore of [...service.readsFrom, ...service.writesTo]) {
+      if (!dataStores.has(dataStore)) throw new Error(`${service.sourceFile}: service ${service.id} references unknown data store ${dataStore}`);
+    }
+  }
+
   for (const operation of model.operations) {
-    if (!domains.has(operation.domainId) || !services.has(operation.serviceId)) throw new Error(`${operation.sourceFile}: operation ${operation.id} references an unknown domain or service`);
     if (!resources.has(`${operation.domainId}:${operation.resourceLogicalId}`)) {
       throw new Error(`${operation.sourceFile}: operation ${operation.id} references missing SAM resource ${operation.resourceLogicalId}`);
     }
+    if (!domains.has(operation.domainId) || !services.has(operation.serviceId)) throw new Error(`${operation.sourceFile}: operation ${operation.id} references an unknown domain or service`);
     for (const outcome of operation.outcomes) {
       if (!messages.has(outcome)) throw new Error(`${operation.sourceFile}: outcome ${outcome} is unknown`);
       if (operation.kind !== 'command') throw new Error(`${operation.sourceFile}: outcome ${outcome} is incompatible with ${operation.kind} ${operation.id}`);

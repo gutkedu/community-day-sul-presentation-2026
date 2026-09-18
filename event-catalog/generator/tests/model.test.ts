@@ -34,30 +34,73 @@ describe('architecture model', () => {
       kind: 'query',
       method: 'GET',
       path: '/orders/{orderId}',
+      serviceId: 'orders-get-order-by-id',
       resourceLogicalId: 'GetOrderByIdFunction',
     });
     expect(model.operations.find((operation) => operation.id === 'CreateOrder')).toMatchObject({
       kind: 'command',
       outcomes: ['OrderCreated'],
+      serviceId: 'orders-create-order',
       resourceLogicalId: 'CreateOrderFunction',
     });
   });
 
-  test('extracts the canonical event and interprets send and receive relative to each service', async () => {
+  test('extracts Lambda functions as services and DynamoDB tables as data stores', async () => {
     const model = await buildCatalogModel(path.join(catalogRoot, 'architecture'));
-    expect(model.messages).toHaveLength(1);
-    expect(model.messages[0]).toMatchObject({
+    expect(model.services.map((service) => service.id)).toEqual([
+      'inventory-get-inventory-by-sku',
+      'inventory-reserve-inventory',
+      'notifications-get-notifications-by-order-id',
+      'notifications-order-created-consumer',
+      'orders-create-order',
+      'orders-get-order-by-id',
+    ]);
+    expect(model.dataStores.map((dataStore) => dataStore.id)).toEqual([
+      'inventory-table',
+      'notifications-table',
+      'orders-table',
+    ]);
+    expect(model.services.find((service) => service.id === 'orders-create-order')).toMatchObject({
+      logicalId: 'CreateOrderFunction',
+      readsFrom: ['orders-table'],
+      writesTo: ['orders-table'],
+    });
+    expect(model.services.find((service) => service.id === 'orders-get-order-by-id')).toMatchObject({
+      readsFrom: ['orders-table'],
+      writesTo: [],
+    });
+    expect(model.services.find((service) => service.id === 'inventory-reserve-inventory')).toMatchObject({
+      readsFrom: ['inventory-table'],
+      writesTo: ['inventory-table'],
+    });
+  });
+
+  test('extracts the SQS command and EventBridge event relative to each Lambda service', async () => {
+    const model = await buildCatalogModel(path.join(catalogRoot, 'architecture'));
+    expect(model.messages).toHaveLength(2);
+    expect(model.messages.find((message) => message.id === 'OrderCreated')).toMatchObject({
       id: 'OrderCreated',
       kind: 'event',
-      wireName: 'order.created.v1',
-      producerServiceId: 'orders-service',
+      wireName: 'orders.order-created.v1',
+      producerServiceId: 'orders-create-order',
       channelId: 'application-events',
     });
+    expect(model.messages.find((message) => message.id === 'ReserveInventory')).toMatchObject({
+      kind: 'command',
+      wireName: 'inventory.reserve.v1',
+      producerServiceId: 'orders-create-order',
+      channelId: 'inventory-commands',
+    });
     expect(model.relationships.filter((relationship) => relationship.messageId === 'OrderCreated')).toEqual([
-      expect.objectContaining({ direction: 'receive', serviceId: 'inventory-service' }),
-      expect.objectContaining({ direction: 'receive', serviceId: 'notifications-service' }),
-      expect.objectContaining({ direction: 'send', serviceId: 'orders-service' }),
+      expect.objectContaining({ direction: 'receive', serviceId: 'notifications-order-created-consumer' }),
+      expect.objectContaining({ direction: 'send', serviceId: 'orders-create-order' }),
     ]);
+    expect(model.relationships.filter((relationship) => relationship.messageId === 'ReserveInventory')).toEqual([
+      expect.objectContaining({ direction: 'receive', serviceId: 'inventory-reserve-inventory' }),
+      expect.objectContaining({ direction: 'send', serviceId: 'orders-create-order' }),
+    ]);
+    expect(model.channels.find((channel) => channel.id === 'inventory-commands')).toMatchObject({ protocol: 'sqs' });
+    expect(model.channels.find((channel) => channel.id === 'application-events')).toMatchObject({ protocol: 'eventbridge' });
   });
 
   test('extracts resources from all three SAM templates', async () => {
@@ -102,9 +145,9 @@ describe('architecture model', () => {
     const root = await temporaryArchitecture();
     const asyncFile = path.join(root, 'domains/orders/asyncapi.yaml');
     const openapiFile = path.join(root, 'domains/orders/openapi.yaml');
-    await writeFile(asyncFile, (await readFile(asyncFile, 'utf8')).replace('order.created.v1', 'order.created.v2'));
+    await writeFile(asyncFile, (await readFile(asyncFile, 'utf8')).replace('orders.order-created.v1', 'orders.order-created.v2'));
     await expect(buildCatalogModel(root)).rejects.toThrow(/wire version.*1\.0\.0/i);
-    await writeFile(asyncFile, (await readFile(asyncFile, 'utf8')).replace('order.created.v2', 'order.created.v1'));
+    await writeFile(asyncFile, (await readFile(asyncFile, 'utf8')).replace('orders.order-created.v2', 'orders.order-created.v1'));
     await writeFile(openapiFile, (await readFile(openapiFile, 'utf8')).replace('OrderCreated\n', 'UnknownEvent\n'));
     await expect(buildCatalogModel(root)).rejects.toThrow(/outcome UnknownEvent/i);
     await writeFile(openapiFile, (await readFile(openapiFile, 'utf8')).replace('UnknownEvent\n', 'OrderCreated\n').replace('CreateOrderFunction', 'MissingFunction'));

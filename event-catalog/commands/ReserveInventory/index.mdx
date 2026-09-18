@@ -1,0 +1,17 @@
+---
+id: ReserveInventory
+name: Reserve Inventory
+version: 1.0.0
+summary: Solicitação para reservar os itens de um pedido.
+owners:
+  - orders-team
+schemaPath: schema.json
+x-wire-name: inventory.reserve.v1
+---
+<!-- Generated from architecture/. Do not edit manually. -->
+
+## Contrato no wire
+
+Nome da mensagem: `inventory.reserve.v1`.
+
+Produzida por `orders-create-order` e consumida por `inventory-reserve-inventory`.

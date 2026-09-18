@@ -10,7 +10,7 @@ defineProps<{ step: number }>()
         <aside class="pipeline-extraction" :class="{ visible: step === 1 }">
           <span class="label">O QUE EXTRAÍMOS</span>
           <div><strong class="query">OpenAPI</strong><span>Rota · operação · entrada · resposta</span></div>
-          <div><strong class="event">AsyncAPI</strong><span>Mensagem · esquema · canal · envio / recebimento</span></div>
+          <div><strong class="event">AsyncAPI</strong><span>Mensagem · esquema · canal · relações</span></div>
           <div><strong class="success-text">AWS SAM</strong><span>Lambda · EventBridge · SQS · DynamoDB</span></div>
         </aside>
       </div>
@@ -24,7 +24,7 @@ defineProps<{ step: number }>()
         <span class="pipeline-tool-arrow" aria-hidden="true">↓</span>
         <div class="pipeline-tool python-tool">
           <carbon-logo-python aria-hidden="true" />
-          <div><strong>Python</strong><span>Validar contratos · Gerar recursos</span></div>
+          <div><strong>Gerador</strong><span>Lê os YAMLs · Cria os recursos</span></div>
         </div>
       </div>
       <span class="pipeline-arrow" aria-hidden="true">→</span>

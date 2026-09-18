@@ -1,0 +1,22 @@
+---
+id: ReserveStock
+name: Reserve Stock
+version: 1.0.0
+summary: Solicita a reserva ao provedor externo de estoque.
+owners:
+  - inventory-team
+operation:
+  method: POST
+  path: /reservations
+  statusCodes:
+    - '200'
+    - '201'
+    - '409'
+    - '503'
+schemaPath: schema.json
+---
+<!-- Generated from architecture/. Do not edit manually. -->
+
+## Semântica
+
+Command HTTP oferecida pela API externa `inventory-stock-api`. Contrato fictício e documental, sem serviço implantado. Não é a mensagem recebida por SQS.
